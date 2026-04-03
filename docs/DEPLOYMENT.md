@@ -60,7 +60,7 @@ Dokploy is a self-hosted PaaS that handles Docker, SSL, deployments, and monitor
 
 - Go to [Hetzner Cloud Console](https://console.hetzner.cloud/)
 - Click "Add Server"
-- Select: **CX22** (2 vCPU, 4 GB RAM, 40 GB disk) or larger
+- Select: **CX32** (4 vCPU, 8 GB RAM, 80 GB disk) or larger
 - Choose **Ubuntu 24.04 LTS**
 - Add your SSH key
 - Click "Create & Buy Now"
@@ -78,7 +78,12 @@ curl -sSL https://dokploy.com/install.sh | sh
 1. Create a new project in Dokploy dashboard
 2. Add application → Git source → your repo → branch `main` → Dockerfile build
 3. Set environment variables (`CLAUDE_CODE_OAUTH_TOKEN`, `AUTH_PASSWORD`)
-4. (Optional) Configure domain with auto-SSL
+4. **Configure domain**:
+   - Go to the **"Domains"** tab
+   - Click **"Add Domain"**
+   - Enter your domain (requires an A record at your registrar pointing to the VPS IP)
+   - Enable **"Generate SSL Certificate"** for automatic HTTPS
+   - Click **"Add"**
 5. Click Deploy
 
 ### 4. Access
