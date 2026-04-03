@@ -6,8 +6,9 @@ import hashlib
 import logging
 import os
 import secrets
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
 import jwt
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -45,9 +46,28 @@ def _verify_auth(request: Request) -> None:
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
+# ── Lifespan ─────────────────────────────────────────────────────────────
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Initialize logging and load .env on startup."""
+    from app.log import setup_logging
+    setup_logging()
+    env_path = PROJECT_ROOT / ".env"
+    if env_path.exists():
+        for line in env_path.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            os.environ.setdefault(key.strip(), value.strip())
+    yield
+
+
 app = FastAPI(
     title="My App",
     version="0.1.0",
+    lifespan=_lifespan,
     dependencies=[Depends(_verify_auth)],
 )
 
@@ -78,29 +98,15 @@ def auth_status():
     return {"auth_required": bool(_AUTH_PASSWORD)}
 
 
-# ── Startup ──────────────────────────────────────────────────────────────
-
-@app.on_event("startup")
-def _startup():
-    """Initialize logging and load .env for background jobs."""
-    from app.log import setup_logging
-    setup_logging()
-    env_path = PROJECT_ROOT / ".env"
-    if env_path.exists():
-        for line in env_path.read_text().splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, _, value = line.partition("=")
-            os.environ.setdefault(key.strip(), value.strip())
+@app.get("/api/health")
+def health():
+    return {"status": "ok"}
 
 
 # ── Register routes ──────────────────────────────────────────────────────
 
-from app.api.routes import router as data_router  # noqa: E402
 from app.api.jobs import router as jobs_router  # noqa: E402
 
-app.include_router(data_router)
 app.include_router(jobs_router)
 
 # ── Static files (production) ────────────────────────────────────────────

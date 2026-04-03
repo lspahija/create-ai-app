@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _MAX_JOBS = 50
+_MAX_STREAM_CHUNKS = 5000
 
 # ── Job state ────────────────────────────────────────────────────────────
 
@@ -57,11 +58,11 @@ def _evict_old_jobs() -> None:
 
 
 def _has_running_job(job_type: str) -> bool:
-    with _jobs_lock:
-        return any(
-            j.job_type == job_type and j.status in ("pending", "running")
-            for j in _jobs.values()
-        )
+    """Check if a job of the given type is running. Caller must hold _jobs_lock."""
+    return any(
+        j.job_type == job_type and j.status in ("pending", "running")
+        for j in _jobs.values()
+    )
 
 
 def _make_progress_callback(job_id: str):
@@ -77,8 +78,6 @@ def _make_progress_callback(job_id: str):
 def _make_stream_callback(job_id: str):
     with _stream_lock:
         _stream_buffers[job_id] = []
-
-    _MAX_STREAM_CHUNKS = 5000
 
     def on_stream(block_type: str, text: str):
         with _stream_lock:
@@ -155,8 +154,13 @@ class DemoJobRequest(BaseModel):
 # ── Trigger endpoints ────────────────────────────────────────────────────
 
 
-def _submit_job(job_type: str, params: dict, target, extra_args: tuple = ()) -> dict:
-    """Create a job, start its thread, return {job_id, status}."""
+def _submit_job(
+    job_type: str, params: dict, target, extra_args: tuple = (), *, unique: bool = False,
+) -> dict:
+    """Create a job, start its thread, return {job_id, status}.
+
+    If unique=True, raises HTTPException(409) when a job of this type is already running.
+    """
     job_id = uuid.uuid4().hex[:12]
     job = JobStatus(
         job_id=job_id,
@@ -165,6 +169,8 @@ def _submit_job(job_type: str, params: dict, target, extra_args: tuple = ()) -> 
         params=params,
     )
     with _jobs_lock:
+        if unique and _has_running_job(job_type):
+            raise HTTPException(409, f"A {job_type} job is already running")
         _jobs[job_id] = job
         _evict_old_jobs()
 
@@ -174,10 +180,8 @@ def _submit_job(job_type: str, params: dict, target, extra_args: tuple = ()) -> 
 
 @router.post("/api/demo-job", status_code=202)
 def trigger_demo_job(req: DemoJobRequest):
-    if _has_running_job("demo"):
-        raise HTTPException(409, "A demo job is already running")
     params = req.model_dump()
-    return _submit_job("demo", params, _run_demo_job, (params,))
+    return _submit_job("demo", params, _run_demo_job, (params,), unique=True)
 
 
 # ── Status endpoints ─────────────────────────────────────────────────────
@@ -203,9 +207,8 @@ def get_job(job_id: str):
 def get_job_stream(job_id: str, after: int = Query(0, ge=0)):
     with _stream_lock:
         buf = _stream_buffers.get(job_id)
-    if buf is None:
-        raise HTTPException(404, f"No stream data for job {job_id}")
-    with _stream_lock:
+        if buf is None:
+            raise HTTPException(404, f"No stream data for job {job_id}")
         chunks = buf[after:]
         total = len(buf)
     return {"chunks": chunks, "next": total}

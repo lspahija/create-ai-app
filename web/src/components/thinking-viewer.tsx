@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { Brain, Terminal, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -114,34 +113,6 @@ export function ThinkingViewer({ jobId, open, onOpenChange }: ThinkingViewerProp
         </div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-/** Button to open the thinking viewer for an active job. */
-export function ThinkingButton({
-  jobId,
-  active,
-}: {
-  jobId: string | null;
-  active: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-
-  if (!jobId) return null;
-
-  return (
-    <>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={() => setOpen(true)}
-        className="gap-1.5 text-muted-foreground"
-      >
-        <Brain className="size-3.5" />
-        {active ? "View thinking..." : "View thinking"}
-      </Button>
-      <ThinkingViewer jobId={jobId} open={open} onOpenChange={setOpen} />
-    </>
   );
 }
 

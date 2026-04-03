@@ -4,17 +4,36 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import shutil
 import subprocess
 import time
 from pathlib import Path
 from typing import Callable
 
-from app.adapters.base import AgentResult
+from app.adapters.base import AgentResult, format_tool_result_content
+
+logger = logging.getLogger(__name__)
 
 
 class ClaudeCliAdapter:
     """Runs Claude Code CLI as a subprocess."""
+
+    @staticmethod
+    def _parse_envelope(result: AgentResult, envelope: dict) -> None:
+        """Extract metadata from a CLI result envelope into an AgentResult."""
+        result.output = envelope.get("result", "")
+        result.metadata["cost_usd"] = envelope.get("total_cost_usd")
+        result.metadata["num_turns"] = envelope.get("num_turns")
+        result.metadata["session_id"] = envelope.get("session_id")
+        result.metadata["subtype"] = envelope.get("subtype")
+        result.metadata["duration_api_ms"] = envelope.get("duration_api_ms")
+        subtype = envelope.get("subtype", "")
+        if subtype == "error_max_turns":
+            result.metadata["max_turns_hit"] = True
+        elif envelope.get("is_error"):
+            result.error = result.output
+            result.exit_code = 1
 
     async def run(
         self,
@@ -55,20 +74,9 @@ class ClaudeCliAdapter:
         try:
             envelope = json.loads(result.output)
             if isinstance(envelope, dict) and envelope.get("type") == "result":
-                result.output = envelope.get("result", "")
-                result.metadata["cost_usd"] = envelope.get("total_cost_usd")
-                result.metadata["num_turns"] = envelope.get("num_turns")
-                result.metadata["session_id"] = envelope.get("session_id")
-                result.metadata["subtype"] = envelope.get("subtype")
-                result.metadata["duration_api_ms"] = envelope.get("duration_api_ms")
-                subtype = envelope.get("subtype", "")
-                if subtype == "error_max_turns":
-                    result.metadata["max_turns_hit"] = True
-                elif envelope.get("is_error"):
-                    result.error = result.output
-                    result.exit_code = 1
+                self._parse_envelope(result, envelope)
         except (json.JSONDecodeError, ValueError):
-            pass
+            logger.warning("Failed to parse CLI JSON output for prompt: %.80s", prompt)
         return result
 
     def _run_streaming(
@@ -155,16 +163,7 @@ class ClaudeCliAdapter:
                             inp_str = json.dumps(inp, indent=2) if isinstance(inp, dict) else str(inp)
                             on_stream("tool_use", f"{name}\n{inp_str}")
                         elif block_type == "tool_result":
-                            content_val = block.get("content", "")
-                            if isinstance(content_val, list):
-                                parts = []
-                                for part in content_val:
-                                    if isinstance(part, dict):
-                                        parts.append(part.get("text", json.dumps(part)))
-                                    else:
-                                        parts.append(str(part))
-                                content_val = "\n".join(parts)
-                            on_stream("tool_result", str(content_val))
+                            on_stream("tool_result", format_tool_result_content(block.get("content", "")))
                         elif block_type == "server_tool_use":
                             name = block.get("name", "unknown")
                             inp = block.get("input", {})
@@ -199,18 +198,7 @@ class ClaudeCliAdapter:
 
         # Parse envelope from the result message
         if envelope_data:
-            result.output = envelope_data.get("result", "")
-            result.metadata["cost_usd"] = envelope_data.get("total_cost_usd")
-            result.metadata["num_turns"] = envelope_data.get("num_turns")
-            result.metadata["session_id"] = envelope_data.get("session_id")
-            result.metadata["subtype"] = envelope_data.get("subtype")
-            result.metadata["duration_api_ms"] = envelope_data.get("duration_api_ms")
-            subtype = envelope_data.get("subtype", "")
-            if subtype == "error_max_turns":
-                result.metadata["max_turns_hit"] = True
-            elif envelope_data.get("is_error"):
-                result.error = result.output
-                result.exit_code = 1
+            self._parse_envelope(result, envelope_data)
 
         return result
 

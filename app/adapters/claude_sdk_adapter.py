@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from typing import Callable
 
-from app.adapters.base import AgentResult
+from app.adapters.base import AgentResult, format_tool_result_content
 
 
 class ClaudeSdkAdapter:
@@ -62,16 +62,7 @@ class ClaudeSdkAdapter:
                                     inp_str = json.dumps(block.input, indent=2)
                                     on_stream("tool_use", f"{block.name}\n{inp_str}")
                                 elif isinstance(block, ToolResultBlock):
-                                    content = block.content
-                                    if isinstance(content, list):
-                                        parts = []
-                                        for part in content:
-                                            if isinstance(part, dict):
-                                                parts.append(part.get("text", json.dumps(part)))
-                                            else:
-                                                parts.append(str(part))
-                                        content = "\n".join(parts)
-                                    on_stream("tool_result", str(content or ""))
+                                    on_stream("tool_result", format_tool_result_content(block.content))
 
                     elif isinstance(message, ResultMessage):
                         result.output = message.result or ""

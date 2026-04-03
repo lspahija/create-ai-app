@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Protocol
@@ -39,6 +40,14 @@ class BaseAdapter(Protocol):
     ) -> AgentResult: ...
 
     def health_check(self) -> bool: ...
+
+
+def format_tool_result_content(content) -> str:
+    """Normalize tool_result content (may be list-of-dicts) to a plain string."""
+    if isinstance(content, list):
+        parts = [p.get("text", json.dumps(p)) if isinstance(p, dict) else str(p) for p in content]
+        return "\n".join(parts)
+    return str(content or "")
 
 
 def run_sync(adapter: BaseAdapter, **kwargs) -> AgentResult:
