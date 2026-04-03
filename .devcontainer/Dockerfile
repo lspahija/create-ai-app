@@ -52,6 +52,16 @@ RUN ARCH=$(dpkg --print-architecture) && \
   esac && \
   curl -fsSL "https://github.com/junegunn/fzf/releases/download/v${FZF_VERSION}/fzf-${FZF_VERSION}-${FZF_ARCH}.tar.gz" | tar -xz -C /usr/local/bin
 
+# Install just (command runner)
+ARG JUST_VERSION=1.40.0
+RUN ARCH=$(dpkg --print-architecture) && \
+  case "${ARCH}" in \
+    amd64) JUST_ARCH="x86_64-unknown-linux-musl" ;; \
+    arm64) JUST_ARCH="aarch64-unknown-linux-musl" ;; \
+    *) echo "Unsupported architecture: ${ARCH}" && exit 1 ;; \
+  esac && \
+  curl -fsSL "https://github.com/casey/just/releases/download/${JUST_VERSION}/just-${JUST_VERSION}-${JUST_ARCH}.tar.gz" | tar -xz -C /usr/local/bin just
+
 # Create directories and set ownership (combined for fewer layers)
 RUN mkdir -p /commandhistory /workspace /home/vscode/.claude /opt && \
   touch /commandhistory/.bash_history && \
@@ -84,6 +94,16 @@ RUN uv python install 3.13 --default
 # Install ast-grep (AST-based code search)
 RUN uv tool install ast-grep-cli
 
+# Install Chromium for Playwright MCP browser automation
+# The MCP server expects Chrome at /opt/google/chrome/chrome, so we install
+# Chromium (which has ARM64 support) and symlink it to the expected path.
+ENV PLAYWRIGHT_BROWSERS_PATH="/home/vscode/.cache/ms-playwright"
+RUN uv tool install playwright && \
+    sudo env "PATH=$PATH" playwright install-deps chromium && \
+    playwright install chromium && \
+    sudo mkdir -p /opt/google/chrome && \
+    sudo ln -sf "$(find $PLAYWRIGHT_BROWSERS_PATH -name chrome -type f -path '*/chrome-linux*' | head -1)" /opt/google/chrome/chrome
+
 # Install fnm (Fast Node Manager) and Node 22
 ARG NODE_VERSION=22
 ENV FNM_DIR="/home/vscode/.fnm"
@@ -91,7 +111,12 @@ RUN curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "$FNM_D
   export PATH="$FNM_DIR:$PATH" && \
   eval "$(fnm env)" && \
   fnm install ${NODE_VERSION} && \
-  fnm default ${NODE_VERSION}
+  fnm default ${NODE_VERSION} && \
+  npm install -g @playwright/mcp
+
+# Ensure node/npx available in non-interactive shells (MCP servers, scripts)
+RUN ln -sf "$(bash -c 'export FNM_DIR=/home/vscode/.fnm && export PATH=$FNM_DIR:$PATH && eval "$(fnm env)" && dirname "$(which node)"')" /home/vscode/.fnm/default-bin
+ENV PATH="/home/vscode/.fnm/default-bin:$PATH"
 
 # Install Oh My Zsh
 ARG ZSH_IN_DOCKER_VERSION=1.2.1

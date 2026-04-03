@@ -4,6 +4,7 @@
 Runs on container creation to set up:
 - Onboarding bypass (when CLAUDE_CODE_OAUTH_TOKEN is set)
 - Claude settings (bypassPermissions mode)
+- Playwright MCP server for browser automation
 - Tmux configuration (200k history, mouse support)
 - Directory ownership fixes for mounted volumes
 """
@@ -193,6 +194,32 @@ def fix_directory_ownership():
                 )
 
 
+def setup_playwright_mcp():
+    """Configure Playwright MCP server for browser automation.
+
+    Writes to $CLAUDE_CONFIG_DIR/.claude.json (user scope), which is
+    where `claude mcp add --scope user` stores MCP server config.
+    """
+    claude_dir = Path(os.environ.get("CLAUDE_CONFIG_DIR", Path.home() / ".claude"))
+    claude_json = claude_dir / ".claude.json"
+
+    config = {}
+    if claude_json.exists():
+        with contextlib.suppress(json.JSONDecodeError):
+            config = json.loads(claude_json.read_text())
+
+    if "mcpServers" not in config:
+        config["mcpServers"] = {}
+
+    config["mcpServers"]["playwright"] = {
+        "command": "npx",
+        "args": ["@playwright/mcp", "--headless"],
+    }
+
+    claude_json.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+    print("[post_install] Playwright MCP configured", file=sys.stderr)
+
+
 def setup_global_gitignore():
     """Set up global gitignore and local git config.
 
@@ -294,6 +321,7 @@ def main():
 
     setup_onboarding_bypass()
     setup_claude_settings()
+    setup_playwright_mcp()
     setup_tmux_config()
     fix_directory_ownership()
     setup_global_gitignore()
