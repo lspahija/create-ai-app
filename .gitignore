@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+*.egg-info/
+dist/
+.idea/
+logs/
+*.db
+*.db-shm
+*.db-wal
+.playwright-mcp/
+node_modules/
+web/dist/
+.ruff_cache/
+.mypy_cache/

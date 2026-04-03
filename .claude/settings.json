@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(just *)",
+      "Bash(uv *)",
+      "Bash(cd web*)"
+    ]
+  }
+}
