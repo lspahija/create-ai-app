@@ -6,8 +6,7 @@ import logging
 import threading
 import uuid
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
-from pathlib import Path
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -60,8 +59,7 @@ def _evict_old_jobs() -> None:
 def _has_running_job(job_type: str) -> bool:
     """Check if a job of the given type is running. Caller must hold _jobs_lock."""
     return any(
-        j.job_type == job_type and j.status in ("pending", "running")
-        for j in _jobs.values()
+        j.job_type == job_type and j.status in ("pending", "running") for j in _jobs.values()
     )
 
 
@@ -72,6 +70,7 @@ def _make_progress_callback(job_id: str):
             if job:
                 job.progress = stage
                 job.progress_pct = pct
+
     return update
 
 
@@ -84,6 +83,7 @@ def _make_stream_callback(job_id: str):
             buf = _stream_buffers.get(job_id)
             if buf is not None and len(buf) < _MAX_STREAM_CHUNKS:
                 buf.append({"type": block_type, "text": text})
+
     return on_stream
 
 
@@ -91,14 +91,14 @@ def _complete_job(job_id: str, run_id: str) -> None:
     with _jobs_lock:
         _jobs[job_id].status = "completed"
         _jobs[job_id].run_id = run_id
-        _jobs[job_id].completed_at = datetime.now(timezone.utc).isoformat()
+        _jobs[job_id].completed_at = datetime.now(UTC).isoformat()
 
 
 def _fail_job(job_id: str, error: str) -> None:
     with _jobs_lock:
         _jobs[job_id].status = "failed"
         _jobs[job_id].error = error
-        _jobs[job_id].completed_at = datetime.now(timezone.utc).isoformat()
+        _jobs[job_id].completed_at = datetime.now(UTC).isoformat()
 
 
 def _start_job(job_id: str) -> None:
@@ -125,7 +125,10 @@ def _run_demo_job(job_id: str, params: dict) -> None:
         adapter = get_adapter(config.default_agent)
 
         topic = params.get("topic", "the meaning of life")
-        prompt = f"Think about the following topic and share your thoughts in a few paragraphs:\n\n{topic}"
+        prompt = (
+            "Think about the following topic and share your thoughts"
+            f" in a few paragraphs:\n\n{topic}"
+        )
 
         progress("Running...", 30)
         result = run_sync(
@@ -155,7 +158,12 @@ class DemoJobRequest(BaseModel):
 
 
 def _submit_job(
-    job_type: str, params: dict, target, extra_args: tuple = (), *, unique: bool = False,
+    job_type: str,
+    params: dict,
+    target,
+    extra_args: tuple = (),
+    *,
+    unique: bool = False,
 ) -> dict:
     """Create a job, start its thread, return {job_id, status}.
 
@@ -165,7 +173,7 @@ def _submit_job(
     job = JobStatus(
         job_id=job_id,
         job_type=job_type,
-        started_at=datetime.now(timezone.utc).isoformat(),
+        started_at=datetime.now(UTC).isoformat(),
         params=params,
     )
     with _jobs_lock:

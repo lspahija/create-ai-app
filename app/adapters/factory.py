@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.adapters.base import AgentResult, BaseAdapter
+from app.adapters.base import BaseAdapter
 
 
 def get_adapter(agent_type: str = "claude-cli") -> BaseAdapter:
@@ -14,13 +14,12 @@ def get_adapter(agent_type: str = "claude-cli") -> BaseAdapter:
     """
     if agent_type == "claude-cli":
         from app.adapters.claude_cli_adapter import ClaudeCliAdapter
+
         return ClaudeCliAdapter()
 
     if agent_type == "claude-sdk":
         from app.adapters.claude_sdk_adapter import ClaudeSdkAdapter
+
         return ClaudeSdkAdapter()
 
-    raise ValueError(
-        f"Unknown agent type: {agent_type!r}. "
-        f"Supported: 'claude-cli', 'claude-sdk'"
-    )
+    raise ValueError(f"Unknown agent type: {agent_type!r}. Supported: 'claude-cli', 'claude-sdk'")

@@ -29,6 +29,15 @@ CLAUDE_CODE_OAUTH_TOKEN=your_token_here
 
 # Optional: enable password auth (recommended for public deployment)
 AUTH_PASSWORD=your_password_here
+
+# Optional: separate JWT signing key (recommended for production)
+# If not set, defaults to a hash of AUTH_PASSWORD
+# Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+JWT_SECRET=
+
+# Optional: allow cross-origin requests (comma-separated origins)
+# Only needed if your frontend is served from a different domain
+CORS_ORIGINS=
 ```
 
 ## Authentication

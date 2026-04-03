@@ -8,8 +8,8 @@ import logging
 import shutil
 import subprocess
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from app.adapters.base import AgentResult, format_tool_result_content
 
@@ -55,14 +55,23 @@ class ClaudeCliAdapter:
         if on_stream:
             return await asyncio.to_thread(
                 self._run_streaming,
-                prompt, cwd, timeout, max_turns, model, effort, on_stream,
+                prompt,
+                cwd,
+                timeout,
+                max_turns,
+                model,
+                effort,
+                on_stream,
             )
 
         cmd = [
             "claude",
-            "-p", prompt,
-            "--output-format", "json",
-            "--max-turns", str(max_turns),
+            "-p",
+            prompt,
+            "--output-format",
+            "json",
+            "--max-turns",
+            str(max_turns),
             "--dangerously-skip-permissions",
         ]
         if model:
@@ -92,10 +101,13 @@ class ClaudeCliAdapter:
         """Run claude with stream-json output, calling on_stream for each block."""
         cmd = [
             "claude",
-            "-p", prompt,
-            "--output-format", "stream-json",
+            "-p",
+            prompt,
+            "--output-format",
+            "stream-json",
             "--verbose",
-            "--max-turns", str(max_turns),
+            "--max-turns",
+            str(max_turns),
             "--dangerously-skip-permissions",
         ]
         if model:
@@ -160,14 +172,19 @@ class ClaudeCliAdapter:
                         elif block_type == "tool_use":
                             name = block.get("name", "unknown")
                             inp = block.get("input", {})
-                            inp_str = json.dumps(inp, indent=2) if isinstance(inp, dict) else str(inp)
+                            inp_str = (
+                                json.dumps(inp, indent=2) if isinstance(inp, dict) else str(inp)
+                            )
                             on_stream("tool_use", f"{name}\n{inp_str}")
                         elif block_type == "tool_result":
-                            on_stream("tool_result", format_tool_result_content(block.get("content", "")))
+                            content = block.get("content", "")
+                            on_stream("tool_result", format_tool_result_content(content))
                         elif block_type == "server_tool_use":
                             name = block.get("name", "unknown")
                             inp = block.get("input", {})
-                            inp_str = json.dumps(inp, indent=2) if isinstance(inp, dict) else str(inp)
+                            inp_str = (
+                                json.dumps(inp, indent=2) if isinstance(inp, dict) else str(inp)
+                            )
                             on_stream("tool_use", f"{name}\n{inp_str}")
 
                 elif msg_type == "result":

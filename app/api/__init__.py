@@ -8,10 +8,12 @@ import os
 import secrets
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
+from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -22,7 +24,9 @@ logger = logging.getLogger(__name__)
 # ── Optional Auth (JWT) ───────────────────────────────────────────────────
 
 _AUTH_PASSWORD = os.environ.get("AUTH_PASSWORD", "")
-_JWT_SECRET = hashlib.sha256(_AUTH_PASSWORD.encode()).hexdigest() if _AUTH_PASSWORD else ""
+_JWT_SECRET = os.environ.get(
+    "JWT_SECRET", hashlib.sha256(_AUTH_PASSWORD.encode()).hexdigest() if _AUTH_PASSWORD else ""
+)
 _JWT_EXPIRY_DAYS = 30
 
 
@@ -41,26 +45,21 @@ def _verify_auth(request: Request) -> None:
     try:
         jwt.decode(token, _JWT_SECRET, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
+        raise HTTPException(status_code=401, detail="Token expired") from None
     except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail="Invalid token") from None
 
 
 # ── Lifespan ─────────────────────────────────────────────────────────────
+
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Initialize logging and load .env on startup."""
     from app.log import setup_logging
+
     setup_logging()
-    env_path = PROJECT_ROOT / ".env"
-    if env_path.exists():
-        for line in env_path.read_text().splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, _, value = line.partition("=")
-            os.environ.setdefault(key.strip(), value.strip())
+    load_dotenv(PROJECT_ROOT / ".env", override=False)
     yield
 
 
@@ -70,6 +69,16 @@ app = FastAPI(
     lifespan=_lifespan,
     dependencies=[Depends(_verify_auth)],
 )
+
+_CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()]
+if _CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 # ── Auth endpoints (public) ──────────────────────────────────────────────
@@ -86,7 +95,7 @@ def auth_login(req: _LoginRequest):
     if not secrets.compare_digest(req.password.encode(), _AUTH_PASSWORD.encode()):
         raise HTTPException(status_code=401, detail="Invalid password")
     token = jwt.encode(
-        {"exp": datetime.now(timezone.utc) + timedelta(days=_JWT_EXPIRY_DAYS)},
+        {"exp": datetime.now(UTC) + timedelta(days=_JWT_EXPIRY_DAYS)},
         _JWT_SECRET,
         algorithm="HS256",
     )
@@ -120,6 +129,7 @@ if _static_dir.exists():
     @app.get("/{path:path}")
     def spa_fallback(path: str):
         from fastapi.responses import FileResponse, HTMLResponse
+
         file_path = (_static_dir / path).resolve()
         if file_path.is_file() and str(file_path).startswith(str(_static_dir_resolved)):
             return FileResponse(file_path)

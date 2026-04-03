@@ -27,8 +27,7 @@ app/
     claude_cli_adapter.py   # Claude CLI subprocess adapter
     claude_sdk_adapter.py   # Claude Agent SDK adapter
   api/
-    __init__.py       # FastAPI app, JWT auth, SPA serving
-    routes.py         # Your API endpoints (starts with /api/health)
+    __init__.py       # FastAPI app, JWT auth, health endpoint, SPA serving
     jobs.py           # Background job system with streaming
     helpers.py        # Shared utilities
   config.py           # Pydantic config models

@@ -10,6 +10,16 @@ setup:
 test *args:
     uv run --group dev python -m pytest {{args}}
 
+# Lint Python code
+lint:
+    uv run --group dev ruff check app/ tests/
+    uv run --group dev ruff format --check app/ tests/
+
+# Auto-format Python code
+fmt:
+    uv run --group dev ruff check --fix app/ tests/
+    uv run --group dev ruff format app/ tests/
+
 # Local dev: API + frontend in one terminal (Ctrl+C stops both)
 dev:
     #!/usr/bin/env bash

@@ -5,8 +5,8 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from app.adapters.base import AgentResult, format_tool_result_content
 
@@ -62,7 +62,10 @@ class ClaudeSdkAdapter:
                                     inp_str = json.dumps(block.input, indent=2)
                                     on_stream("tool_use", f"{block.name}\n{inp_str}")
                                 elif isinstance(block, ToolResultBlock):
-                                    on_stream("tool_result", format_tool_result_content(block.content))
+                                    on_stream(
+                                        "tool_result",
+                                        format_tool_result_content(block.content),
+                                    )
 
                     elif isinstance(message, ResultMessage):
                         result.output = message.result or ""
@@ -90,6 +93,7 @@ class ClaudeSdkAdapter:
     def health_check(self) -> bool:
         try:
             from claude_agent_sdk import query  # noqa: F401
+
             return True
         except ImportError:
             return False
