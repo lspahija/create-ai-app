@@ -9,6 +9,51 @@ Open this project in VS Code with the Dev Containers extension. Everything is pr
 - fzf, ripgrep, ast-grep, just, tmux
 - Playwright + Chromium for MCP browser automation
 
+#### Terminal-based setup with `devc`
+
+The `.devcontainer/` includes a CLI helper called `devc` for managing devcontainers from the terminal. First-time setup:
+
+```bash
+# Install devc to ~/.local/bin (one-time)
+.devcontainer/install.sh self-install
+
+# Start the devcontainer and open a shell
+devc .
+devc shell
+```
+
+Common commands:
+
+| Command | Description |
+|---------|-------------|
+| `devc .` | Install template & start container |
+| `devc up` | Start container |
+| `devc shell` | Open zsh shell in container |
+| `devc exec <cmd>` | Run command in container |
+| `devc rebuild` | Rebuild container (preserves volumes) |
+| `devc down` | Stop container |
+| `devc destroy` | Remove container, volumes, image |
+| `devc upgrade` | Upgrade Claude Code inside container |
+| `devc mount <path>` | Add a bind mount |
+| `devc sync` | Sync Claude sessions to host |
+
+For headless/CI usage, set `CLAUDE_CODE_OAUTH_TOKEN` in the environment before starting the container.
+
+#### Keeping the devcontainer up to date
+
+The `.devcontainer/` directory is managed as a [git subtree](https://www.atlassian.com/git/tutorials/git-subtree) from [trailofbits/claude-code-devcontainer](https://github.com/trailofbits/claude-code-devcontainer). To pull the latest upstream changes:
+
+```bash
+just devcontainer-update
+```
+
+This fetches from upstream and merges into `.devcontainer/`. If upstream changes conflict with local customizations, resolve conflicts normally and commit.
+
+Local customizations over upstream:
+- Docker-in-Docker support
+- `just` command runner
+- Playwright MCP with Chromium
+
 ### Manual Setup
 
 - Python 3.12+ (via [uv](https://docs.astral.sh/uv/))

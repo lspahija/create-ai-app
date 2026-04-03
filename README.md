@@ -19,6 +19,31 @@ A production-ready starter template for AI-powered full-stack applications.
 2. Open in VS Code with the Dev Containers extension (or use GitHub Codespaces)
 3. The DevContainer builds automatically with all dependencies
 
+#### Terminal-based setup with `devc`
+
+The devcontainer includes a CLI helper called `devc` (from [trailofbits/claude-code-devcontainer](https://github.com/trailofbits/claude-code-devcontainer)). First-time setup:
+
+```bash
+# Install devc to ~/.local/bin (one-time)
+.devcontainer/install.sh self-install
+
+# Start the devcontainer and open a shell
+devc .
+devc shell
+```
+
+Common `devc` commands:
+
+```bash
+devc up            # Start container
+devc shell         # Open zsh shell in container
+devc exec <cmd>    # Run a command in the container
+devc rebuild       # Rebuild (preserves volumes)
+devc down          # Stop container
+devc destroy       # Remove container, volumes, image
+devc upgrade       # Upgrade Claude Code inside container
+```
+
 ### Manual Setup
 
 ```bash
@@ -37,14 +62,15 @@ Visit http://localhost:5173 (frontend dev server proxies API calls to port 8000)
 ## Available Commands
 
 ```bash
-just              # List all commands
-just dev          # API + frontend dev servers
-just serve        # API server only (port 8000)
-just test         # Run tests
-just health       # Check API health
-just dashboard    # Build frontend + serve on single port
-just web-dev      # Frontend dev server only
-just web-build    # Build frontend for production
+just                      # List all commands
+just dev                  # API + frontend dev servers
+just serve                # API server only (port 8000)
+just test                 # Run tests
+just health               # Check API health
+just dashboard            # Build frontend + serve on single port
+just web-dev              # Frontend dev server only
+just web-build            # Build frontend for production
+just devcontainer-update  # Pull latest devcontainer updates from upstream
 ```
 
 ## Project Structure
