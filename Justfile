@@ -41,3 +41,8 @@ dashboard:
 # Check API availability
 health:
     curl -sf http://localhost:8000/api/health && echo " OK" || echo " FAIL"
+
+# Pull latest devcontainer updates from upstream
+devcontainer-update:
+    git fetch upstream-devcontainer
+    git subtree pull --prefix=.devcontainer upstream-devcontainer main --squash -m "Update devcontainer from upstream"
