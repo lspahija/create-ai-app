@@ -1,28 +1,39 @@
 # Development
 
-## Prerequisites
-
-### DevContainer (recommended)
-
-Open this project in VS Code with the Dev Containers extension. Everything is pre-installed:
+All development happens inside the devcontainer via the `devc` CLI (from [trailofbits/claude-code-devcontainer](https://github.com/trailofbits/claude-code-devcontainer)). Everything is pre-installed:
 - Python 3.13, uv, Node 22, Claude CLI
 - fzf, ripgrep, ast-grep, just, tmux
 - Playwright + Chromium for MCP browser automation
 
-#### Terminal-based setup with `devc`
+## Prerequisites
 
-The `.devcontainer/` includes a CLI helper called `devc` for managing devcontainers from the terminal. First-time setup:
+Requires [Docker](https://docker.com/products/docker-desktop) (or [OrbStack](https://orbstack.dev/) / [Colima](https://github.com/abiosoft/colima)). First-time setup on the host:
 
 ```bash
+# Install the devcontainer CLI (one-time)
+npm install -g @devcontainers/cli
+
 # Install devc to ~/.local/bin (one-time)
 .devcontainer/install.sh self-install
+# Ensure ~/.local/bin is on your PATH:
+#   zsh:  echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+#   bash: echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+#   fish: fish_add_path ~/.local/bin
+```
 
+## Getting Started
+
+```bash
 # Start the devcontainer and open a shell
 devc .
 devc shell
+claude             # First time: follow login prompts (auth persists across rebuilds)
+
+# Inside the container:
+just setup && just web-setup && just dev
 ```
 
-Common commands:
+## `devc` Commands
 
 | Command | Description |
 |---------|-------------|
@@ -39,7 +50,15 @@ Common commands:
 
 For headless/CI usage, set `CLAUDE_CODE_OAUTH_TOKEN` in the environment before starting the container.
 
-#### Keeping the devcontainer up to date
+See [.devcontainer/README.md](../.devcontainer/README.md) for advanced topics (Docker-in-Docker, network isolation, file sharing, security model, troubleshooting).
+
+## Adding Tools to the Container
+
+- **CLI tools** (e.g. ripgrep, jq): Add to `.devcontainer/Dockerfile`, then `devc rebuild`
+- **Dev features** (e.g. Docker, language runtimes): Add to `features` in `.devcontainer/devcontainer.json` — see [available features](https://containers.dev/features)
+- **Project services** (e.g. Postgres, Redis): Use `docker compose` inside the container (Docker-in-Docker is enabled)
+
+## Keeping the Devcontainer Up to Date
 
 The `.devcontainer/` directory is managed as a [git subtree](https://www.atlassian.com/git/tutorials/git-subtree) from [trailofbits/claude-code-devcontainer](https://github.com/trailofbits/claude-code-devcontainer). To pull the latest upstream changes:
 
@@ -53,26 +72,6 @@ Local customizations over upstream:
 - Docker-in-Docker support
 - `just` command runner
 - Playwright MCP with Chromium
-
-### Manual Setup
-
-- Python 3.12+ (via [uv](https://docs.astral.sh/uv/))
-- Node 22+ (via [fnm](https://github.com/Schniz/fnm) or nvm)
-- [just](https://github.com/casey/just) command runner
-- [Claude CLI](https://docs.anthropic.com/en/docs/claude-code) (for AI features)
-
-## Getting Started
-
-```bash
-# Install Python dependencies
-just setup
-
-# Install frontend dependencies
-just web-setup
-
-# Start both servers (API on :8000, frontend on :5173)
-just dev
-```
 
 ## Development Workflow
 
