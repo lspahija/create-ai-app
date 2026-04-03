@@ -6,41 +6,35 @@
     "args": {
       "TZ": "${localEnv:TZ:UTC}",
       "GIT_DELTA_VERSION": "0.18.2",
-      "ZSH_IN_DOCKER_VERSION": "1.2.1"
-    }
+      "ZSH_IN_DOCKER_VERSION": "1.2.1",
+    },
   },
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
   },
-  "runArgs": [
-    "--cap-add=NET_ADMIN",
-    "--cap-add=NET_RAW",
-    "--shm-size=1g"
-  ],
+  "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW", "--shm-size=1g"],
   "init": true,
   "updateRemoteUserUID": true,
   "customizations": {
     "vscode": {
-      "extensions": [
-        "anthropic.claude-code"
-      ],
+      "extensions": ["anthropic.claude-code"],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "zsh",
         "terminal.integrated.profiles.linux": {
           "bash": {
             "path": "bash",
-            "icon": "terminal-bash"
+            "icon": "terminal-bash",
           },
           "zsh": {
-            "path": "zsh"
-          }
+            "path": "zsh",
+          },
         },
         "files.trimTrailingWhitespace": true,
         "files.insertFinalNewline": true,
-        "files.trimFinalNewlines": true
-      }
-    }
+        "files.trimFinalNewlines": true,
+      },
+    },
   },
   "remoteUser": "vscode",
   "mounts": [
@@ -48,7 +42,7 @@
     "source=devc-${localWorkspaceFolderBasename}-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
     "source=devc-${localWorkspaceFolderBasename}-gh-${devcontainerId},target=/home/vscode/.config/gh,type=volume",
     "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly",
-    "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly"
+    "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly",
   ],
   "containerEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",
@@ -64,14 +58,15 @@
     "NPM_CONFIG_MINIMUM_RELEASE_AGE": "1440",
     "PLAYWRIGHT_BROWSERS_PATH": "/home/vscode/.cache/ms-playwright",
     "PYTHONDONTWRITEBYTECODE": "1",
-    "PIP_DISABLE_PIP_VERSION_CHECK": "1"
+    "PIP_DISABLE_PIP_VERSION_CHECK": "1",
+    "CLAUDE_CODE_EFFORT_LEVEL": "max",
   },
   "remoteEnv": {
     "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN:}",
-    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY:}"
+    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY:}",
   },
   "initializeCommand": "test -f \"$HOME/.gitconfig\" || touch \"$HOME/.gitconfig\"",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
-  "postCreateCommand": "uv run --no-project /opt/post_install.py"
+  "postCreateCommand": "uv run --no-project /opt/post_install.py",
 }
