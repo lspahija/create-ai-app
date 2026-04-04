@@ -243,7 +243,11 @@ class ClaudeCliAdapter:
         start = time.monotonic()
         try:
             proc = subprocess.run(
-                cmd, cwd=str(cwd), capture_output=True, text=True, timeout=timeout,
+                cmd,
+                cwd=str(cwd),
+                capture_output=True,
+                text=True,
+                timeout=timeout,
             )
             return AgentResult(
                 output=proc.stdout,
