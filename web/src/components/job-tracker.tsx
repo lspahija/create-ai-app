@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Loader2, Check } from "lucide-react";
-import { useJobs } from "@/hooks/use-queries";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/api/client";
 import { useElapsed } from "@/hooks/use-elapsed";
 import type { JobStatus } from "@/api/types";
 
@@ -47,7 +48,12 @@ function JobRow({ job }: { job: JobStatus }) {
 }
 
 export function JobTracker() {
-  const { data: jobs } = useJobs();
+  const { data: jobs } = useQuery({
+    queryKey: ["jobs"],
+    queryFn: api.jobs,
+    staleTime: 1_000,
+    refetchInterval: 3_000,
+  });
   const [now, setNow] = useState(() => Date.now());
 
   const activeJobs = jobs?.filter(

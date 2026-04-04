@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 
 class Config(BaseModel):
     default_agent: str = "claude-cli"  # "claude-cli" (subprocess) or "claude-sdk" (Agent SDK)
+    agent_model: str = "claude-opus-4-6"
+    agent_effort: str = "max"
     agent_max_turns: int = 30
     agent_timeout_seconds: int = 900
 

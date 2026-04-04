@@ -1,4 +1,6 @@
 # AI agent configuration
 default_agent: claude-cli  # "claude-cli" (subprocess) or "claude-sdk" (Agent SDK library)
+agent_model: claude-opus-4-6
+agent_effort: max
 agent_max_turns: 30
 agent_timeout_seconds: 900

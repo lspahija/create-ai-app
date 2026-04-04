@@ -8,7 +8,7 @@ setup:
 
 # Run tests
 test *args:
-    uv run --group dev python -m pytest {{args}}
+    uv run --group dev --extra web python -m pytest {{args}}
 
 # Lint Python code
 lint:

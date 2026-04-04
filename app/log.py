@@ -8,14 +8,13 @@ LOG_DIR = Path("logs")
 LOG_FILE = LOG_DIR / "app.log"
 
 
-def setup_logging(verbose: bool = False) -> None:
+def setup_logging() -> None:
     """Configure root logger with console and rotating file output."""
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)
 
-    # Console: show INFO+ (or DEBUG if verbose)
     console = logging.StreamHandler()
-    console.setLevel(logging.DEBUG if verbose else logging.INFO)
+    console.setLevel(logging.INFO)
     console.setFormatter(
         logging.Formatter(
             "%(asctime)s %(levelname)s %(name)s: %(message)s",
@@ -39,7 +38,3 @@ def setup_logging(verbose: bool = False) -> None:
         )
     )
     root.addHandler(file_handler)
-
-    # Suppress noisy third-party debug logs
-    for name in ("httpcore", "httpx", "urllib3"):
-        logging.getLogger(name).setLevel(logging.WARNING)

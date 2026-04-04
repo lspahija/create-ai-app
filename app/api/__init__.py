@@ -109,7 +109,18 @@ def auth_status():
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok"}
+    from app.adapters import get_adapter
+    from app.config import load_config
+
+    config = load_config(PROJECT_ROOT / "config.yaml")
+    adapter = get_adapter(config.default_agent)
+    adapter_ok = adapter.health_check()
+
+    return {
+        "status": "ok" if adapter_ok else "degraded",
+        "adapter": config.default_agent,
+        "adapter_healthy": adapter_ok,
+    }
 
 
 # ── Register routes ──────────────────────────────────────────────────────

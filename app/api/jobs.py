@@ -137,6 +137,8 @@ def _run_demo_job(job_id: str, params: dict) -> None:
             cwd=PROJECT_ROOT,
             timeout=config.agent_timeout_seconds,
             max_turns=config.agent_max_turns,
+            model=config.agent_model,
+            effort=config.agent_effort,
             on_stream=on_stream,
         )
 
