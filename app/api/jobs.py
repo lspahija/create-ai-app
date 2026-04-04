@@ -114,8 +114,7 @@ def _start_job(job_id: str) -> None:
 async def _run_demo_job(job_id: str, params: dict) -> None:
     """Run the AI adapter to think about a user-supplied topic."""
     from app.adapters import get_adapter
-    from app.api.helpers import PROJECT_ROOT
-    from app.config import load_config
+    from app.config import PROJECT_ROOT, load_config
 
     _start_job(job_id)
     progress = _make_progress_callback(job_id)
@@ -174,12 +173,12 @@ def _submit_job(
     job_type: str,
     params: dict,
     target: Any,
-    extra_args: tuple = (),
     *,
     unique: bool = False,
 ) -> dict:
     """Create a job, start an async task, return {job_id, status}.
 
+    The target coroutine receives (job_id, params).
     If unique=True, raises HTTPException(409) when a job of this type is already running.
     """
     job_id = uuid.uuid4().hex[:12]
@@ -195,7 +194,7 @@ def _submit_job(
         _jobs[job_id] = job
         _evict_old_jobs()
 
-    task = asyncio.create_task(target(job_id, *extra_args))
+    task = asyncio.create_task(target(job_id, params))
     _background_tasks.add(task)
     task.add_done_callback(_task_done)
     return {"job_id": job_id, "status": "pending"}
@@ -203,8 +202,7 @@ def _submit_job(
 
 @router.post("/api/demo-job", status_code=202)
 async def trigger_demo_job(req: DemoJobRequest):
-    params = req.model_dump()
-    return _submit_job("demo", params, _run_demo_job, (params,), unique=True)
+    return _submit_job("demo", req.model_dump(), _run_demo_job, unique=True)
 
 
 # ── Status endpoints ─────────────────────────────────────────────────────

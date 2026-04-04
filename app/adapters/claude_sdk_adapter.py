@@ -68,15 +68,18 @@ class ClaudeSdkAdapter:
                                     )
 
                     elif isinstance(message, ResultMessage):
-                        result.output = message.result or ""
                         result.exit_code = 1 if message.is_error else 0
-                        result.metadata["cost_usd"] = message.total_cost_usd
-                        result.metadata["num_turns"] = message.num_turns
-                        result.metadata["session_id"] = message.session_id
-                        result.metadata["subtype"] = message.subtype
-                        result.metadata["duration_api_ms"] = message.duration_api_ms
-                        if message.subtype == "error_max_turns":
-                            result.metadata["max_turns_hit"] = True
+                        result.set_envelope(
+                            {
+                                "result": message.result or "",
+                                "is_error": message.is_error,
+                                "total_cost_usd": message.total_cost_usd,
+                                "num_turns": message.num_turns,
+                                "session_id": message.session_id,
+                                "subtype": message.subtype,
+                                "duration_api_ms": message.duration_api_ms,
+                            }
+                        )
 
         except TimeoutError:
             result.timed_out = True

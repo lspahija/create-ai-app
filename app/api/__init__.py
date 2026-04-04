@@ -3,52 +3,21 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import logging
 import os
-import secrets
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime, timedelta
 
-import jwt
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
 
-from app.api.helpers import PROJECT_ROOT
+from app.api.auth import router as auth_router
+from app.api.auth import verify_auth
+from app.config import PROJECT_ROOT
 
 logger = logging.getLogger(__name__)
-
-# ── Optional Auth (JWT) ───────────────────────────────────────────────────
-
-_AUTH_PASSWORD = os.environ.get("AUTH_PASSWORD", "")
-_JWT_SECRET = os.environ.get(
-    "JWT_SECRET", hashlib.sha256(_AUTH_PASSWORD.encode()).hexdigest() if _AUTH_PASSWORD else ""
-)
-_JWT_EXPIRY_DAYS = 30
-
-
-def _verify_auth(request: Request) -> None:
-    """Enforce JWT auth when AUTH_PASSWORD env var is set."""
-    if not request.url.path.startswith("/api"):
-        return
-    if request.url.path.startswith("/api/auth/"):
-        return
-    if not _AUTH_PASSWORD:
-        return
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Authentication required")
-    token = auth_header[7:]
-    try:
-        jwt.decode(token, _JWT_SECRET, algorithms=["HS256"])
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired") from None
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token") from None
 
 
 # ── Lifespan ─────────────────────────────────────────────────────────────
@@ -74,7 +43,7 @@ app = FastAPI(
     title="My App",
     version="0.1.0",
     lifespan=_lifespan,
-    dependencies=[Depends(_verify_auth)],
+    dependencies=[Depends(verify_auth)],
 )
 
 _CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()]
@@ -86,32 +55,6 @@ if _CORS_ORIGINS:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
-
-# ── Auth endpoints (public) ──────────────────────────────────────────────
-
-
-class _LoginRequest(BaseModel):
-    password: str
-
-
-@app.post("/api/auth/login")
-async def auth_login(req: _LoginRequest):
-    if not _AUTH_PASSWORD:
-        return {"token": ""}
-    if not secrets.compare_digest(req.password.encode(), _AUTH_PASSWORD.encode()):
-        raise HTTPException(status_code=401, detail="Invalid password")
-    token = jwt.encode(
-        {"exp": datetime.now(UTC) + timedelta(days=_JWT_EXPIRY_DAYS)},
-        _JWT_SECRET,
-        algorithm="HS256",
-    )
-    return {"token": token}
-
-
-@app.get("/api/auth/status")
-async def auth_status():
-    return {"auth_required": bool(_AUTH_PASSWORD)}
 
 
 @app.get("/api/health")
@@ -134,6 +77,7 @@ async def health():
 
 from app.api.jobs import router as jobs_router  # noqa: E402
 
+app.include_router(auth_router)
 app.include_router(jobs_router)
 
 # ── Static files (production) ────────────────────────────────────────────

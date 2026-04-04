@@ -1,4 +1,4 @@
-"""Pydantic models for config.yaml."""
+"""App configuration."""
 
 from __future__ import annotations
 
@@ -9,6 +9,8 @@ import yaml
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
+
+PROJECT_ROOT = Path(__file__).parent.parent
 
 
 class Config(BaseModel):

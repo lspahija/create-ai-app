@@ -12,9 +12,9 @@ Browser → React SPA → FastAPI Backend → AI Adapter → Claude CLI / SDK
 
 ### API Layer (`app/api/`)
 
-- **`__init__.py`** — FastAPI app creation, JWT auth middleware, .env loading, SPA static file serving
+- **`__init__.py`** — FastAPI app creation, CORS, health endpoint, SPA static file serving
+- **`auth.py`** — JWT auth middleware and login/status endpoints
 - **`jobs.py`** — Background job registry with threading, progress callbacks, streaming output
-- **`helpers.py`** — Shared utilities (PROJECT_ROOT)
 
 ### AI Adapters (`app/adapters/`)
 

@@ -19,22 +19,6 @@ logger = logging.getLogger(__name__)
 class ClaudeCliAdapter:
     """Runs Claude Code CLI as a subprocess."""
 
-    @staticmethod
-    def _parse_envelope(result: AgentResult, envelope: dict) -> None:
-        """Extract metadata from a CLI result envelope into an AgentResult."""
-        result.output = envelope.get("result", "")
-        result.metadata["cost_usd"] = envelope.get("total_cost_usd")
-        result.metadata["num_turns"] = envelope.get("num_turns")
-        result.metadata["session_id"] = envelope.get("session_id")
-        subtype = envelope.get("subtype", "")
-        result.metadata["subtype"] = subtype
-        result.metadata["duration_api_ms"] = envelope.get("duration_api_ms")
-        if subtype == "error_max_turns":
-            result.metadata["max_turns_hit"] = True
-        elif envelope.get("is_error"):
-            result.error = result.output
-            result.exit_code = 1
-
     async def run(
         self,
         prompt: str,
@@ -69,7 +53,7 @@ class ClaudeCliAdapter:
         try:
             envelope = json.loads(result.output)
             if isinstance(envelope, dict) and envelope.get("type") == "result":
-                self._parse_envelope(result, envelope)
+                result.set_envelope(envelope)
         except (json.JSONDecodeError, ValueError):
             logger.warning("Failed to parse CLI JSON output for prompt: %.80s", prompt)
         return result
