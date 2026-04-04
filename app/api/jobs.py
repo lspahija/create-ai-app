@@ -26,7 +26,6 @@ class JobStatus:
     job_id: str
     job_type: str
     status: str = "pending"  # "pending" | "running" | "completed" | "failed"
-    run_id: str | None = None
     started_at: str = ""
     completed_at: str | None = None
     error: str | None = None
@@ -87,10 +86,9 @@ def _make_stream_callback(job_id: str):
     return on_stream
 
 
-def _complete_job(job_id: str, run_id: str) -> None:
+def _complete_job(job_id: str) -> None:
     with _jobs_lock:
         _jobs[job_id].status = "completed"
-        _jobs[job_id].run_id = run_id
         _jobs[job_id].completed_at = datetime.now(UTC).isoformat()
 
 
@@ -131,7 +129,7 @@ def _run_demo_job(job_id: str, params: dict) -> None:
         )
 
         progress("Running...", 30)
-        result = run_sync(
+        run_sync(
             adapter,
             prompt=prompt,
             cwd=PROJECT_ROOT,
@@ -143,7 +141,7 @@ def _run_demo_job(job_id: str, params: dict) -> None:
         )
 
         progress("Complete", 100)
-        _complete_job(job_id, result.output[:100] if result.output else "done")
+        _complete_job(job_id)
     except Exception as e:
         logger.exception("Demo job %s failed", job_id)
         _fail_job(job_id, str(e))

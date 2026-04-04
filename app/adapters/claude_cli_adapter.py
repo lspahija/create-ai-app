@@ -64,20 +64,7 @@ class ClaudeCliAdapter:
                 on_stream,
             )
 
-        cmd = [
-            "claude",
-            "-p",
-            prompt,
-            "--output-format",
-            "json",
-            "--max-turns",
-            str(max_turns),
-            "--dangerously-skip-permissions",
-        ]
-        if model:
-            cmd.extend(["--model", model])
-        if effort:
-            cmd.extend(["--effort", effort])
+        cmd = self._build_cmd(prompt, max_turns, model, effort, output_format="json")
         result = await asyncio.to_thread(self._run_subprocess, cmd, cwd, timeout)
         result.metadata["raw_stdout"] = result.output
         try:
@@ -87,6 +74,34 @@ class ClaudeCliAdapter:
         except (json.JSONDecodeError, ValueError):
             logger.warning("Failed to parse CLI JSON output for prompt: %.80s", prompt)
         return result
+
+    @staticmethod
+    def _build_cmd(
+        prompt: str,
+        max_turns: int,
+        model: str | None,
+        effort: str | None,
+        *,
+        output_format: str = "json",
+    ) -> list[str]:
+        """Build the claude CLI command."""
+        cmd = [
+            "claude",
+            "-p",
+            prompt,
+            "--output-format",
+            output_format,
+            "--max-turns",
+            str(max_turns),
+            "--dangerously-skip-permissions",
+        ]
+        if output_format == "stream-json":
+            cmd.append("--verbose")
+        if model:
+            cmd.extend(["--model", model])
+        if effort:
+            cmd.extend(["--effort", effort])
+        return cmd
 
     def _run_streaming(
         self,
@@ -99,21 +114,7 @@ class ClaudeCliAdapter:
         on_stream: Callable[[str, str], None],
     ) -> AgentResult:
         """Run claude with stream-json output, calling on_stream for each block."""
-        cmd = [
-            "claude",
-            "-p",
-            prompt,
-            "--output-format",
-            "stream-json",
-            "--verbose",
-            "--max-turns",
-            str(max_turns),
-            "--dangerously-skip-permissions",
-        ]
-        if model:
-            cmd.extend(["--model", model])
-        if effort:
-            cmd.extend(["--effort", effort])
+        cmd = self._build_cmd(prompt, max_turns, model, effort, output_format="stream-json")
 
         start = time.monotonic()
         result = AgentResult()
@@ -169,7 +170,7 @@ class ClaudeCliAdapter:
                             on_stream("thinking", block.get("thinking", ""))
                         elif block_type == "text":
                             on_stream("text", block.get("text", ""))
-                        elif block_type == "tool_use":
+                        elif block_type in ("tool_use", "server_tool_use"):
                             name = block.get("name", "unknown")
                             inp = block.get("input", {})
                             inp_str = (
@@ -179,13 +180,6 @@ class ClaudeCliAdapter:
                         elif block_type == "tool_result":
                             content = block.get("content", "")
                             on_stream("tool_result", format_tool_result_content(content))
-                        elif block_type == "server_tool_use":
-                            name = block.get("name", "unknown")
-                            inp = block.get("input", {})
-                            inp_str = (
-                                json.dumps(inp, indent=2) if isinstance(inp, dict) else str(inp)
-                            )
-                            on_stream("tool_use", f"{name}\n{inp_str}")
 
                 elif msg_type == "result":
                     envelope_data = obj

@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const check = await fetch("/api/health", {
             headers: { Authorization: `Bearer ${token}` },
           });
-          if (check.ok || check.status !== 401) {
+          if (check.status !== 401) {
             setAuthenticated(true);
             setLoading(false);
             return;
