@@ -45,6 +45,13 @@ _stream_lock = threading.Lock()
 _background_tasks: set[asyncio.Task] = set()
 
 
+async def shutdown() -> None:
+    """Cancel all background tasks. Called from app lifespan."""
+    for task in _background_tasks:
+        task.cancel()
+    await asyncio.gather(*_background_tasks, return_exceptions=True)
+
+
 def _evict_old_jobs() -> None:
     """Drop oldest completed/failed jobs when over _MAX_JOBS. Caller holds _jobs_lock."""
     if len(_jobs) <= _MAX_JOBS:

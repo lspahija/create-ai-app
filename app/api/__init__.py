@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 from collections.abc import AsyncIterator
@@ -31,12 +30,9 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     setup_logging()
     load_dotenv(PROJECT_ROOT / ".env", override=False)
     yield
-    # Shutdown: cancel background tasks
-    from app.api.jobs import _background_tasks
+    from app.api.jobs import shutdown
 
-    for task in _background_tasks:
-        task.cancel()
-    await asyncio.gather(*_background_tasks, return_exceptions=True)
+    await shutdown()
 
 
 app = FastAPI(
