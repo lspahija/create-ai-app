@@ -2,7 +2,7 @@
 name = "my-app"
 version = "0.1.0"
 description = "AI-powered full-stack application"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
     "pyyaml>=6.0",
     "pydantic>=2.0",

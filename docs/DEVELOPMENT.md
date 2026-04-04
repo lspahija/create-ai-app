@@ -82,7 +82,7 @@ The FastAPI server runs with hot reload:
 just serve
 ```
 
-Add endpoints in `app/api/routes.py`. Add background jobs in `app/api/jobs.py`.
+Add endpoints in `app/api/` (create a new router file and include it in `app/api/__init__.py`). Add background jobs in `app/api/jobs.py`.
 
 ### Frontend
 

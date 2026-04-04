@@ -6,7 +6,7 @@ AI-powered full-stack application.
 
 ## Project Conventions
 
-- Python 3.12+, managed with `uv`
+- Python 3.13+, managed with `uv`
 - Run commands via `just` (see Justfile)
 - Config in YAML (config.yaml), validated with Pydantic
 - FastAPI backend in `app/api/`
