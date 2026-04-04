@@ -27,7 +27,7 @@ class AgentResult:
     def set_envelope(self, envelope: dict) -> None:
         """Populate metadata from a result envelope (shared by CLI and SDK adapters)."""
         self.output = envelope.get("result", self.output)
-        self.metadata["cost_usd"] = envelope.get("total_cost_usd") or envelope.get("cost_usd")
+        self.metadata["cost_usd"] = envelope.get("total_cost_usd")
         self.metadata["num_turns"] = envelope.get("num_turns")
         self.metadata["session_id"] = envelope.get("session_id")
         self.metadata["duration_api_ms"] = envelope.get("duration_api_ms")

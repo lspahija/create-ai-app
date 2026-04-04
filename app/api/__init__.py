@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.auth import router as auth_router
 from app.api.auth import verify_auth
 from app.api.jobs import router as jobs_router
+from app.api.jobs import shutdown as _shutdown_jobs
 from app.config import PROJECT_ROOT
 
 logger = logging.getLogger(__name__)
@@ -31,9 +32,7 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     setup_logging()
     load_dotenv(PROJECT_ROOT / ".env", override=False)
     yield
-    from app.api.jobs import shutdown
-
-    await shutdown()
+    await _shutdown_jobs()
 
 
 app = FastAPI(

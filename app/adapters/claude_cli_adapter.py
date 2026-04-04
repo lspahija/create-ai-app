@@ -214,8 +214,8 @@ class ClaudeCliAdapter:
         except (subprocess.TimeoutExpired, FileNotFoundError):
             return False
 
+    @staticmethod
     def _run_subprocess(
-        self,
         cmd: list[str],
         cwd: Path,
         timeout: int = 900,

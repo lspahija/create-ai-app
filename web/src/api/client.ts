@@ -24,19 +24,12 @@ async function request<T>(
   if (body != null) {
     headers["Content-Type"] = "application/json";
   }
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60_000);
-  let res: Response;
-  try {
-    res = await fetch(`${BASE}${path}`, {
-      method,
-      headers,
-      body: body != null ? JSON.stringify(body) : undefined,
-      signal: controller.signal,
-    });
-  } finally {
-    clearTimeout(timeoutId);
-  }
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    headers,
+    body: body != null ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(60_000),
+  });
 
   if (res.status === 401) {
     localStorage.removeItem("auth_token");

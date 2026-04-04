@@ -68,7 +68,6 @@ class ClaudeSdkAdapter:
                                     )
 
                     elif isinstance(message, ResultMessage):
-                        result.exit_code = 1 if message.is_error else 0
                         result.set_envelope(
                             {
                                 "result": message.result or "",
