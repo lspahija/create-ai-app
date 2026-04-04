@@ -11,6 +11,8 @@ A production-ready starter template for AI-powered full-stack applications.
 - **Docker deployment** — Multi-stage production build with persistent volume
 - **Dokploy guide** — Deploy to Hetzner Cloud with automatic SSL
 
+See [BLUEPRINT.md](BLUEPRINT.md) for the design principles behind these choices.
+
 ## Quick Start
 
 All development happens inside the devcontainer. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for setup, commands, and workflow.

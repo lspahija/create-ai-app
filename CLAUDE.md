@@ -1,5 +1,7 @@
 # My App
 
+> See [BLUEPRINT.md](BLUEPRINT.md) for the principles behind these choices — use it to replicate this setup in other projects.
+
 AI-powered full-stack application.
 
 ## Project Conventions
