@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -40,7 +39,7 @@ class BaseAdapter(Protocol):
         on_stream: Callable[[str, str], None] | None = None,
     ) -> AgentResult: ...
 
-    def health_check(self) -> bool: ...
+    async def health_check(self) -> bool: ...
 
 
 def format_tool_result_content(content) -> str:
@@ -49,8 +48,3 @@ def format_tool_result_content(content) -> str:
         parts = [p.get("text", json.dumps(p)) if isinstance(p, dict) else str(p) for p in content]
         return "\n".join(parts)
     return str(content or "")
-
-
-def run_sync(adapter: BaseAdapter, **kwargs) -> AgentResult:
-    """Convenience wrapper to call an async adapter from sync code."""
-    return asyncio.run(adapter.run(**kwargs))

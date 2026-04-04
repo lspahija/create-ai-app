@@ -73,17 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  if (authRequired && !authenticated) {
-    return (
-      <AuthContext.Provider value={{ authenticated, authRequired, loading, login, logout }}>
-        <LoginPage />
-      </AuthContext.Provider>
-    );
-  }
-
   return (
     <AuthContext.Provider value={{ authenticated, authRequired, loading, login, logout }}>
-      {children}
+      {authRequired && !authenticated ? <LoginPage /> : children}
     </AuthContext.Provider>
   );
 }

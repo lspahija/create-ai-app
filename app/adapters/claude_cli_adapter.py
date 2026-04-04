@@ -26,9 +26,9 @@ class ClaudeCliAdapter:
         result.metadata["cost_usd"] = envelope.get("total_cost_usd")
         result.metadata["num_turns"] = envelope.get("num_turns")
         result.metadata["session_id"] = envelope.get("session_id")
-        result.metadata["subtype"] = envelope.get("subtype")
-        result.metadata["duration_api_ms"] = envelope.get("duration_api_ms")
         subtype = envelope.get("subtype", "")
+        result.metadata["subtype"] = subtype
+        result.metadata["duration_api_ms"] = envelope.get("duration_api_ms")
         if subtype == "error_max_turns":
             result.metadata["max_turns_hit"] = True
         elif envelope.get("is_error"):
@@ -212,7 +212,11 @@ class ClaudeCliAdapter:
 
         return result
 
-    def health_check(self) -> bool:
+    async def health_check(self) -> bool:
+        return await asyncio.to_thread(self._health_check_sync)
+
+    @staticmethod
+    def _health_check_sync() -> bool:
         if shutil.which("claude") is None:
             return False
         try:

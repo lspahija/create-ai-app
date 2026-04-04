@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import threading
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -39,6 +41,8 @@ _jobs_lock = threading.Lock()
 
 _stream_buffers: dict[str, list[dict]] = {}
 _stream_lock = threading.Lock()
+
+_background_tasks: set[asyncio.Task] = set()
 
 
 def _evict_old_jobs() -> None:
@@ -107,9 +111,9 @@ def _start_job(job_id: str) -> None:
 # ── Background runners ───────────────────────────────────────────────────
 
 
-def _run_demo_job(job_id: str, params: dict) -> None:
+async def _run_demo_job(job_id: str, params: dict) -> None:
     """Run the AI adapter to think about a user-supplied topic."""
-    from app.adapters import get_adapter, run_sync
+    from app.adapters import get_adapter
     from app.api.helpers import PROJECT_ROOT
     from app.config import load_config
 
@@ -129,8 +133,7 @@ def _run_demo_job(job_id: str, params: dict) -> None:
         )
 
         progress("Running...", 30)
-        run_sync(
-            adapter,
+        await adapter.run(
             prompt=prompt,
             cwd=PROJECT_ROOT,
             timeout=config.agent_timeout_seconds,
@@ -142,6 +145,9 @@ def _run_demo_job(job_id: str, params: dict) -> None:
 
         progress("Complete", 100)
         _complete_job(job_id)
+    except asyncio.CancelledError:
+        _fail_job(job_id, "Job cancelled")
+        raise
     except Exception as e:
         logger.exception("Demo job %s failed", job_id)
         _fail_job(job_id, str(e))
@@ -157,15 +163,22 @@ class DemoJobRequest(BaseModel):
 # ── Trigger endpoints ────────────────────────────────────────────────────
 
 
+def _task_done(task: asyncio.Task) -> None:
+    """Clean up task reference and log unhandled errors."""
+    _background_tasks.discard(task)
+    if not task.cancelled() and task.exception():
+        logger.error("Background job failed: %s", task.exception())
+
+
 def _submit_job(
     job_type: str,
     params: dict,
-    target,
+    target: Any,
     extra_args: tuple = (),
     *,
     unique: bool = False,
 ) -> dict:
-    """Create a job, start its thread, return {job_id, status}.
+    """Create a job, start an async task, return {job_id, status}.
 
     If unique=True, raises HTTPException(409) when a job of this type is already running.
     """
@@ -182,12 +195,14 @@ def _submit_job(
         _jobs[job_id] = job
         _evict_old_jobs()
 
-    threading.Thread(target=target, args=(job_id, *extra_args), daemon=True).start()
+    task = asyncio.create_task(target(job_id, *extra_args))
+    _background_tasks.add(task)
+    task.add_done_callback(_task_done)
     return {"job_id": job_id, "status": "pending"}
 
 
 @router.post("/api/demo-job", status_code=202)
-def trigger_demo_job(req: DemoJobRequest):
+async def trigger_demo_job(req: DemoJobRequest):
     params = req.model_dump()
     return _submit_job("demo", params, _run_demo_job, (params,), unique=True)
 
@@ -196,14 +211,14 @@ def trigger_demo_job(req: DemoJobRequest):
 
 
 @router.get("/api/jobs")
-def list_jobs():
+async def list_jobs():
     with _jobs_lock:
         jobs = sorted(_jobs.values(), key=lambda j: j.started_at, reverse=True)
         return [asdict(j) for j in jobs]
 
 
 @router.get("/api/jobs/{job_id}")
-def get_job(job_id: str):
+async def get_job(job_id: str):
     with _jobs_lock:
         job = _jobs.get(job_id)
     if not job:
@@ -212,7 +227,7 @@ def get_job(job_id: str):
 
 
 @router.get("/api/jobs/{job_id}/stream")
-def get_job_stream(job_id: str, after: int = Query(0, ge=0)):
+async def get_job_stream(job_id: str, after: int = Query(0, ge=0)):
     with _stream_lock:
         buf = _stream_buffers.get(job_id)
         if buf is None:

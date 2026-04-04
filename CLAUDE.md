@@ -23,7 +23,7 @@ AI-powered full-stack application.
 
 FastAPI backend serves REST API + React SPA.
 AI adapters (CLI subprocess or Agent SDK) handle AI tasks via a provider-agnostic protocol.
-Background jobs run in threads with progress tracking and streaming output.
+Background jobs run as async tasks with progress tracking and streaming output.
 Optional password auth via AUTH_PASSWORD env var (JWT-based, 30-day tokens).
 
 ## Adding New Adapters

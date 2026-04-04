@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 import os
@@ -61,6 +62,12 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     setup_logging()
     load_dotenv(PROJECT_ROOT / ".env", override=False)
     yield
+    # Shutdown: cancel background tasks
+    from app.api.jobs import _background_tasks
+
+    for task in _background_tasks:
+        task.cancel()
+    await asyncio.gather(*_background_tasks, return_exceptions=True)
 
 
 app = FastAPI(
@@ -89,7 +96,7 @@ class _LoginRequest(BaseModel):
 
 
 @app.post("/api/auth/login")
-def auth_login(req: _LoginRequest):
+async def auth_login(req: _LoginRequest):
     if not _AUTH_PASSWORD:
         return {"token": ""}
     if not secrets.compare_digest(req.password.encode(), _AUTH_PASSWORD.encode()):
@@ -103,18 +110,18 @@ def auth_login(req: _LoginRequest):
 
 
 @app.get("/api/auth/status")
-def auth_status():
+async def auth_status():
     return {"auth_required": bool(_AUTH_PASSWORD)}
 
 
 @app.get("/api/health")
-def health():
+async def health():
     from app.adapters import get_adapter
     from app.config import load_config
 
     config = load_config(PROJECT_ROOT / "config.yaml")
     adapter = get_adapter(config.default_agent)
-    adapter_ok = adapter.health_check()
+    adapter_ok = await adapter.health_check()
 
     return {
         "status": "ok" if adapter_ok else "degraded",
@@ -138,7 +145,7 @@ if _static_dir.exists():
     _static_dir_resolved = _static_dir.resolve()
 
     @app.get("/{path:path}")
-    def spa_fallback(path: str):
+    async def spa_fallback(path: str):
         from fastapi.responses import FileResponse, HTMLResponse
 
         file_path = (_static_dir / path).resolve()

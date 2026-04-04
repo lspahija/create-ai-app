@@ -90,7 +90,7 @@ class ClaudeSdkAdapter:
         result.duration_seconds = time.monotonic() - start
         return result
 
-    def health_check(self) -> bool:
+    async def health_check(self) -> bool:
         try:
             from claude_agent_sdk import query  # noqa: F401
 
