@@ -12,6 +12,8 @@ Opinionated stack and conventions for this project. When setting up a new projec
 - **Simple JWT auth** — optional, toggled by a single `AUTH_PASSWORD` env var. Unset = open access, set = password required. Same image for dev and prod.
 - **Docker** — single multi-stage Dockerfile, single container, single port. Frontend built in a Node stage, served as static files by FastAPI. No nginx, no reverse proxy, no separate frontend deployment.
 - **Deploy to Hetzner with Dokploy** — self-hosted PaaS with automatic SSL. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+- **ruff** for linting and formatting — one tool replacing black, isort, and flake8. Configured in `pyproject.toml`. `just lint` checks, `just fmt` fixes.
+- **AI adapters** — provider-agnostic adapter pattern in `app/adapters/`. Two included: Claude CLI (subprocess) and Claude Agent SDK (in-process). Both authenticated via `CLAUDE_CODE_OAUTH_TOKEN` env var. Factory function with lazy imports so unused adapters don't load their dependencies. Add new providers by implementing the `BaseAdapter` protocol and registering in the factory.
 - **GitHub Actions CI** — four parallel jobs: lint (ruff), test (pytest), frontend (eslint + tsc), docker build. Fast, isolated feedback.
 
 ## Principles
