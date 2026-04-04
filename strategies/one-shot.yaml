@@ -1,0 +1,8 @@
+description: Think about a topic (simple one-shot demo)
+
+prompt:
+  task: |
+    Think about the following topic and share your thoughts
+    in a few paragraphs:
+
+    $topic

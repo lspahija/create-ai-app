@@ -1,0 +1,23 @@
+description: Periodically check project health and fix issues
+
+prompt:
+  system: You are a project maintenance agent.
+  task: |
+    Check the project for:
+    1. Failing tests (run the test suite)
+    2. Lint errors
+    3. Obvious bugs
+
+    Fix any issues you find.
+
+    $previous_result
+
+execution:
+  mode: loop
+  interval: 600
+  carry_context: true
+  max_iterations: 0
+
+agent:
+  max_turns: 20
+  timeout: 300

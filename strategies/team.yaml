@@ -1,0 +1,24 @@
+description: Build a feature using a parallel agent team
+
+prompt:
+  task: |
+    Implement the following feature as a team:
+
+    $feature_description
+
+    Coordinate the work — assign backend, frontend, and tests to
+    separate team members. Review all changes before declaring done.
+
+execution:
+  mode: one-shot
+
+agent:
+  max_turns: 200
+  timeout: 7200
+
+team:
+  enabled: true
+  size: 3
+  lead_prompt: |
+    You are the team lead. Break the feature into tasks,
+    delegate to your team members, and review their work.

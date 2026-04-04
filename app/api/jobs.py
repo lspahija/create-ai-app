@@ -9,6 +9,7 @@ import threading
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -43,6 +44,7 @@ _stream_buffers: dict[str, list[dict]] = {}
 _lock = threading.Lock()
 
 _background_tasks: set[asyncio.Task] = set()
+_cancel_events: dict[str, asyncio.Event] = {}
 
 
 async def shutdown() -> None:
@@ -151,7 +153,60 @@ async def _run_demo_job(job_id: str, params: dict) -> None:
         _update_job(job_id, "failed", error=str(e))
 
 
+async def _run_strategy_job(job_id: str, params: dict) -> None:
+    """Run an AI agent strategy."""
+    from app.config import PROJECT_ROOT, load_config
+    from app.strategies.executor import execute_strategy
+    from app.strategies.loader import load_strategy
+
+    _update_job(job_id, "running")
+    progress = _make_progress_callback(job_id)
+    on_stream = _make_stream_callback(job_id)
+    progress("Loading strategy...", 5)
+
+    try:
+        config = load_config(PROJECT_ROOT / "config.yaml")
+        strategy = load_strategy(params["strategy"])
+
+        cwd = Path(params.get("cwd") or PROJECT_ROOT)
+        variables = params.get("variables", {})
+
+        cancel_event = asyncio.Event()
+        with _lock:
+            _cancel_events[job_id] = cancel_event
+
+        progress("Executing strategy...", 10)
+        await execute_strategy(
+            strategy=strategy,
+            global_config=config,
+            variables=variables,
+            cwd=cwd,
+            on_stream=on_stream,
+            on_progress=lambda stage, pct: progress(stage, pct),
+            cancel_event=cancel_event,
+        )
+
+        progress("Complete", 100)
+        _update_job(job_id, "completed")
+    except asyncio.CancelledError:
+        _update_job(job_id, "failed", error="Job cancelled")
+        raise
+    except (FileNotFoundError, ValueError) as e:
+        _update_job(job_id, "failed", error=str(e))
+    except Exception as e:
+        logger.exception("Strategy job %s failed", job_id)
+        _update_job(job_id, "failed", error=str(e))
+    finally:
+        with _lock:
+            _cancel_events.pop(job_id, None)
+
+
 # ── Request models ───────────────────────────────────────────────────────
+
+
+class StrategyJobRequest(BaseModel):
+    strategy: str
+    variables: dict[str, str] = {}
 
 
 class DemoJobRequest(BaseModel):
@@ -202,6 +257,36 @@ def _submit_job(
 @router.post("/api/demo-job", status_code=202)
 async def trigger_demo_job(req: DemoJobRequest):
     return _submit_job("demo", req.model_dump(), _run_demo_job, unique=True)
+
+
+@router.post("/api/jobs", status_code=202)
+async def trigger_strategy_job(req: StrategyJobRequest):
+    return _submit_job("strategy", req.model_dump(), _run_strategy_job)
+
+
+@router.get("/api/strategies")
+async def get_strategies():
+    from app.strategies.loader import load_all_strategies
+
+    strategies = load_all_strategies()
+    return [
+        {"name": s.name, "description": s.description, "mode": s.execution.mode}
+        for s in strategies.values()
+    ]
+
+
+@router.post("/api/jobs/{job_id}/cancel", status_code=200)
+async def cancel_job(job_id: str):
+    with _lock:
+        event = _cancel_events.get(job_id)
+        job = _jobs.get(job_id)
+    if not job:
+        raise HTTPException(404, f"Job not found: {job_id}")
+    if job.status not in ("pending", "running"):
+        raise HTTPException(409, f"Job is already {job.status}")
+    if event:
+        event.set()
+    return {"job_id": job_id, "status": "cancelling"}
 
 
 # ── Status endpoints ─────────────────────────────────────────────────────
