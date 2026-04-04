@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 export function useElapsed(startedAt: string | undefined, active: boolean): string {
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!active) return;
     const id = setInterval(() => setNow(Date.now()), 1000);

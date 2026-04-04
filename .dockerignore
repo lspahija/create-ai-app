@@ -6,6 +6,7 @@ node_modules
 web/node_modules
 web/dist
 .devcontainer
+!.devcontainer/post_install.py
 .claude
 docs
 tests

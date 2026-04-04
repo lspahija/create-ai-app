@@ -48,30 +48,28 @@ function JobRow({ job }: { job: JobStatus }) {
 
 export function JobTracker() {
   const { data: jobs } = useJobs();
-  const [recentlyCompleted, setRecentlyCompleted] = useState<Set<string>>(new Set());
+  const [now, setNow] = useState(() => Date.now());
 
   const activeJobs = jobs?.filter(
     (j) => j.status === "pending" || j.status === "running",
   ) ?? [];
 
-  // Track recently completed jobs for brief display
-  useEffect(() => {
-    if (!jobs) return;
-    const completed = jobs.filter(
-      (j) => j.status === "completed" && j.completed_at,
-    );
-    const recent = completed.filter((j) => {
-      const completedAt = new Date(j.completed_at!).getTime();
-      return Date.now() - completedAt < 5000;
-    });
-    if (recent.length > 0) {
-      setRecentlyCompleted(new Set(recent.map((j) => j.job_id)));
-      const timer = setTimeout(() => setRecentlyCompleted(new Set()), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [jobs]);
+  const hasCompleted = (jobs ?? []).some(
+    (j) => j.status === "completed" && j.completed_at,
+  );
 
-  const completedJobs = jobs?.filter((j) => recentlyCompleted.has(j.job_id)) ?? [];
+  // Tick to expire recently completed jobs from display
+  useEffect(() => {
+    if (!hasCompleted) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [hasCompleted]);
+
+  const completedJobs = (jobs ?? []).filter(
+    (j) => j.status === "completed" && j.completed_at &&
+      now - new Date(j.completed_at!).getTime() < 5000,
+  );
+
   const visible = [...activeJobs, ...completedJobs];
 
   if (visible.length === 0) return null;

@@ -16,21 +16,22 @@ interface ThinkingViewerProps {
 }
 
 export function ThinkingViewer({ jobId, open, onOpenChange }: ThinkingViewerProps) {
+  // key={jobId} remounts inner component, resetting all state when job changes
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <ThinkingViewerContent key={jobId} jobId={jobId} open={open} />
+    </Dialog>
+  );
+}
+
+function ThinkingViewerContent({ jobId, open }: { jobId: string | null; open: boolean }) {
   const [chunks, setChunks] = useState<StreamChunk[]>([]);
-  const [polling, setPolling] = useState(true);
   const cursorRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Reset when job changes
-  useEffect(() => {
-    setChunks([]);
-    cursorRef.current = 0;
-    setPolling(true);
-  }, [jobId]);
-
   // Poll for new chunks from live job stream
   useEffect(() => {
-    if (!jobId || !open || !polling) return;
+    if (!jobId || !open) return;
 
     let cancelled = false;
 
@@ -53,7 +54,7 @@ export function ThinkingViewer({ jobId, open, onOpenChange }: ThinkingViewerProp
       cancelled = true;
       clearInterval(id);
     };
-  }, [jobId, open, polling]);
+  }, [jobId, open]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -64,55 +65,53 @@ export function ThinkingViewer({ jobId, open, onOpenChange }: ThinkingViewerProp
   const sections = groupChunks(chunks);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Brain className="size-4" />
-            AI Thinking
-          </DialogTitle>
-        </DialogHeader>
-        <div className="flex-1 overflow-y-auto space-y-3 min-h-0">
-          {sections.length === 0 && (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              Waiting for AI to start thinking...
-            </p>
-          )}
-          {sections.map((section, i) => (
-            <div key={i}>
-              {section.type === "thinking" ? (
-                <div className="bg-muted/50 rounded-lg p-3 border border-dashed">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Thinking</p>
-                  <p className="text-sm whitespace-pre-wrap">{section.text}</p>
-                </div>
-              ) : section.type === "tool_use" ? (
-                <div className="bg-blue-500/5 rounded-lg p-3 border border-blue-500/20">
-                  <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1 flex items-center gap-1">
-                    <ArrowRight className="size-3" />
-                    Tool Call
-                  </p>
-                  <pre className="text-xs whitespace-pre-wrap font-mono bg-background/50 rounded p-2 mt-1 overflow-x-auto">{section.text}</pre>
-                </div>
-              ) : section.type === "tool_result" ? (
-                <div className="bg-green-500/5 rounded-lg p-3 border border-green-500/20">
-                  <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1 flex items-center gap-1">
-                    <Terminal className="size-3" />
-                    Tool Result
-                  </p>
-                  <pre className="text-xs whitespace-pre-wrap font-mono bg-background/50 rounded p-2 mt-1 overflow-x-auto max-h-60 overflow-y-auto">{section.text}</pre>
-                </div>
-              ) : (
-                <div className="rounded-lg p-3">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Response</p>
-                  <p className="text-sm whitespace-pre-wrap">{section.text}</p>
-                </div>
-              )}
-            </div>
-          ))}
-          <div ref={bottomRef} />
-        </div>
-      </DialogContent>
-    </Dialog>
+    <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
+          <Brain className="size-4" />
+          AI Thinking
+        </DialogTitle>
+      </DialogHeader>
+      <div className="flex-1 overflow-y-auto space-y-3 min-h-0">
+        {sections.length === 0 && (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            Waiting for AI to start thinking...
+          </p>
+        )}
+        {sections.map((section, i) => (
+          <div key={i}>
+            {section.type === "thinking" ? (
+              <div className="bg-muted/50 rounded-lg p-3 border border-dashed">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Thinking</p>
+                <p className="text-sm whitespace-pre-wrap">{section.text}</p>
+              </div>
+            ) : section.type === "tool_use" ? (
+              <div className="bg-blue-500/5 rounded-lg p-3 border border-blue-500/20">
+                <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1 flex items-center gap-1">
+                  <ArrowRight className="size-3" />
+                  Tool Call
+                </p>
+                <pre className="text-xs whitespace-pre-wrap font-mono bg-background/50 rounded p-2 mt-1 overflow-x-auto">{section.text}</pre>
+              </div>
+            ) : section.type === "tool_result" ? (
+              <div className="bg-green-500/5 rounded-lg p-3 border border-green-500/20">
+                <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1 flex items-center gap-1">
+                  <Terminal className="size-3" />
+                  Tool Result
+                </p>
+                <pre className="text-xs whitespace-pre-wrap font-mono bg-background/50 rounded p-2 mt-1 overflow-x-auto max-h-60 overflow-y-auto">{section.text}</pre>
+              </div>
+            ) : (
+              <div className="rounded-lg p-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Response</p>
+                <p className="text-sm whitespace-pre-wrap">{section.text}</p>
+              </div>
+            )}
+          </div>
+        ))}
+        <div ref={bottomRef} />
+      </div>
+    </DialogContent>
   );
 }
 
