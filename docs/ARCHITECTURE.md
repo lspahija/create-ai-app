@@ -36,7 +36,7 @@ YAML config loaded into Pydantic models. Add your own config fields here.
 
 ### Logging (`app/log.py`)
 
-Rotating file handler (2MB, 5 backups) + console. Third-party loggers suppressed to WARNING.
+Rotating file handler (2MB, 5 backups) + console.
 
 ## Frontend (`web/`)
 

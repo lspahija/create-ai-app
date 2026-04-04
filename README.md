@@ -42,6 +42,8 @@ docs/                 # Architecture, development, deployment guides
 **config.yaml** — AI agent settings:
 ```yaml
 default_agent: claude-cli   # or "claude-sdk"
+agent_model: claude-opus-4-6
+agent_effort: max
 agent_max_turns: 30
 agent_timeout_seconds: 900
 ```

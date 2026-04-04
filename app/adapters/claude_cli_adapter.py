@@ -49,8 +49,8 @@ class ClaudeCliAdapter:
 
         Args:
             on_stream: Optional callback(block_type, text) called for each
-                       content block as it arrives. block_type is "thinking"
-                       or "text".
+                       content block as it arrives. block_type is "thinking",
+                       "text", "tool_use", or "tool_result".
         """
         if on_stream:
             return await asyncio.to_thread(
@@ -66,7 +66,6 @@ class ClaudeCliAdapter:
 
         cmd = self._build_cmd(prompt, max_turns, model, effort, output_format="json")
         result = await asyncio.to_thread(self._run_subprocess, cmd, cwd, timeout)
-        result.metadata["raw_stdout"] = result.output
         try:
             envelope = json.loads(result.output)
             if isinstance(envelope, dict) and envelope.get("type") == "result":
@@ -178,8 +177,8 @@ class ClaudeCliAdapter:
                             )
                             on_stream("tool_use", f"{name}\n{inp_str}")
                         elif block_type == "tool_result":
-                            content = block.get("content", "")
-                            on_stream("tool_result", format_tool_result_content(content))
+                            tool_content = block.get("content", "")
+                            on_stream("tool_result", format_tool_result_content(tool_content))
 
                 elif msg_type == "result":
                     envelope_data = obj
