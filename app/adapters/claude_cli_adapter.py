@@ -242,52 +242,26 @@ class ClaudeCliAdapter:
         """Execute a subprocess with timeout and timing."""
         start = time.monotonic()
         try:
-            proc = subprocess.Popen(
-                cmd,
-                cwd=str(cwd),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
+            proc = subprocess.run(
+                cmd, cwd=str(cwd), capture_output=True, text=True, timeout=timeout,
             )
-            try:
-                stdout, stderr = proc.communicate(timeout=timeout)
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                stdout, stderr = proc.communicate()
-                duration = time.monotonic() - start
-                return AgentResult(
-                    output=stdout or "",
-                    exit_code=-1,
-                    duration_seconds=duration,
-                    timed_out=True,
-                    error=f"Agent timed out after {timeout}s\n{stderr or ''}".strip(),
-                )
-            except KeyboardInterrupt:
-                proc.terminate()
-                try:
-                    proc.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
-                duration = time.monotonic() - start
-                return AgentResult(
-                    output="",
-                    exit_code=-2,
-                    duration_seconds=duration,
-                    error="Interrupted by user",
-                    metadata={"interrupted": True},
-                )
-
-            duration = time.monotonic() - start
             return AgentResult(
-                output=stdout,
+                output=proc.stdout,
                 exit_code=proc.returncode,
-                duration_seconds=duration,
-                error=stderr,
+                duration_seconds=time.monotonic() - start,
+                error=proc.stderr,
+            )
+        except subprocess.TimeoutExpired as e:
+            return AgentResult(
+                output=e.stdout or "",
+                exit_code=-1,
+                duration_seconds=time.monotonic() - start,
+                timed_out=True,
+                error=f"Agent timed out after {timeout}s\n{e.stderr or ''}".strip(),
             )
         except FileNotFoundError:
-            duration = time.monotonic() - start
             return AgentResult(
                 exit_code=-1,
-                duration_seconds=duration,
+                duration_seconds=time.monotonic() - start,
                 error=f"Command not found: {cmd[0]}",
             )

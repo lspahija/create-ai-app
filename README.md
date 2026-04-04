@@ -51,7 +51,7 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for environment variables, Docker d
 ## Customizing
 
 1. **Rename the project** — Update `name` in `pyproject.toml`, titles in `web/index.html`, `App.tsx`, `login-page.tsx`, and `CLAUDE.md`
-2. **Add API endpoints** — Add routes to `app/api/routes.py`
+2. **Add API endpoints** — Create a new router in `app/api/` and include it in `app/api/__init__.py`
 3. **Add background jobs** — Follow the pattern in `app/api/jobs.py`
 4. **Add frontend pages** — Create components in `web/src/pages/`, add routes in `App.tsx`
 5. **Add AI adapters** — Implement `BaseAdapter` protocol in `app/adapters/`
