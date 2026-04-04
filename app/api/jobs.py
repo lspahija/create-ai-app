@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import threading
 import uuid
@@ -10,8 +11,9 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from fastapi.responses import StreamingResponse
 
 logger = logging.getLogger(__name__)
 
@@ -222,11 +224,25 @@ async def get_job(job_id: str):
 
 
 @router.get("/api/jobs/{job_id}/stream")
-async def get_job_stream(job_id: str, after: int = Query(0, ge=0)):
+async def stream_job(job_id: str):
+    """Stream job output as Server-Sent Events."""
     with _lock:
-        buf = _stream_buffers.get(job_id)
-        if buf is None:
-            raise HTTPException(404, f"No stream data for job {job_id}")
-        chunks = buf[after:]
-        total = len(buf)
-    return {"chunks": chunks, "next": total}
+        if job_id not in _jobs:
+            raise HTTPException(404, f"Job not found: {job_id}")
+
+    async def generate():
+        cursor = 0
+        while True:
+            with _lock:
+                buf = _stream_buffers.get(job_id, [])
+                chunks = buf[cursor:]
+                cursor = len(buf)
+                job = _jobs.get(job_id)
+                done = job and job.status in ("completed", "failed")
+            for chunk in chunks:
+                yield f"data: {json.dumps(chunk)}\n\n"
+            if done and not chunks:
+                return
+            await asyncio.sleep(0.3)
+
+    return StreamingResponse(generate(), media_type="text/event-stream")

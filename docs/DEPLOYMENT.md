@@ -46,7 +46,7 @@ Set `AUTH_PASSWORD` to require a password for all access. Recommended for any pu
 
 When enabled:
 - The app shows a login page on first visit
-- After entering the correct password, a JWT token is issued (valid for 30 days) and stored in localStorage
+- After entering the correct password, a JWT token is issued (valid for 30 days) and stored in an HTTP-only cookie
 - All `/api/*` endpoints require a valid Bearer token (except `/api/auth/login` and `/api/auth/status`)
 - Static files are served without auth so the login page can load
 - No username needed — just the password

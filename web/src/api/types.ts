@@ -20,11 +20,6 @@ export interface StreamChunk {
   text: string;
 }
 
-export interface StreamResponse {
-  chunks: StreamChunk[];
-  next: number;
-}
-
 // ── Demo ─────────────────────────────────────────────────────────────────
 
 export interface DemoJobRequest {

@@ -5,7 +5,7 @@ export interface AuthState {
   authRequired: boolean;
   loading: boolean;
   login: (password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthState | null>(null);

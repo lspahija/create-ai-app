@@ -1,26 +1,17 @@
 import type {
   JobStatus,
   JobResponse,
-  StreamResponse,
   DemoJobRequest,
 } from "./types";
 
 const BASE = "/api";
-
-function getAuthHeader(): Record<string, string> {
-  const token = localStorage.getItem("auth_token");
-  if (!token) return {};
-  return { Authorization: `Bearer ${token}` };
-}
 
 async function request<T>(
   method: string,
   path: string,
   body?: unknown,
 ): Promise<T> {
-  const headers: Record<string, string> = {
-    ...getAuthHeader(),
-  };
+  const headers: Record<string, string> = {};
   if (body != null) {
     headers["Content-Type"] = "application/json";
   }
@@ -28,11 +19,11 @@ async function request<T>(
     method,
     headers,
     body: body != null ? JSON.stringify(body) : undefined,
+    credentials: "include",
     signal: AbortSignal.timeout(60_000),
   });
 
   if (res.status === 401) {
-    localStorage.removeItem("auth_token");
     window.location.reload();
     throw new Error("Authentication required");
   }
@@ -53,6 +44,4 @@ export const api = {
   triggerDemoJob: (params: DemoJobRequest) => post<JobResponse>("/demo-job", params),
   jobs: () => get<JobStatus[]>("/jobs"),
   job: (jobId: string) => get<JobStatus>(`/jobs/${jobId}`),
-  jobStream: (jobId: string, after: number) =>
-    get<StreamResponse>(`/jobs/${jobId}/stream?after=${after}`),
 };

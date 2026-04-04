@@ -6,7 +6,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { api } from "@/api/client";
 import type { StreamChunk } from "@/api/types";
 
 interface ThinkingViewerProps {
@@ -26,34 +25,19 @@ export function ThinkingViewer({ jobId, open, onOpenChange }: ThinkingViewerProp
 
 function ThinkingViewerContent({ jobId, open }: { jobId: string | null; open: boolean }) {
   const [chunks, setChunks] = useState<StreamChunk[]>([]);
-  const cursorRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Poll for new chunks from live job stream
+  // Stream chunks via SSE
   useEffect(() => {
     if (!jobId || !open) return;
 
-    let cancelled = false;
-
-    const poll = async () => {
-      try {
-        const data = await api.jobStream(jobId, cursorRef.current);
-        if (cancelled) return;
-        if (data.chunks.length > 0) {
-          setChunks((prev) => [...prev, ...data.chunks]);
-          cursorRef.current = data.next;
-        }
-      } catch {
-        // Stream not available yet
-      }
+    const es = new EventSource(`/api/jobs/${jobId}/stream`);
+    es.onmessage = (e) => {
+      const chunk = JSON.parse(e.data) as StreamChunk;
+      setChunks((prev) => [...prev, chunk]);
     };
 
-    poll();
-    const id = setInterval(poll, 1000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
+    return () => es.close();
   }, [jobId, open]);
 
   // Auto-scroll to bottom

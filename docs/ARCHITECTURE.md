@@ -57,14 +57,14 @@ Optional password auth via `AUTH_PASSWORD` env var:
 - JWT tokens (HS256, 30-day expiry)
 - Secret derived from password hash
 - Applied as FastAPI dependency on all `/api/*` routes (except `/api/auth/*`)
-- Frontend stores token in localStorage
+- JWT stored in HTTP-only cookie
 
 ## Background Jobs
 
 In-memory job registry with threading:
 - Jobs tracked by ID with status, progress, and streaming output
 - Stream buffer captures AI thinking/text/tool-use blocks
-- Frontend polls `/api/jobs/{id}/stream` for real-time updates
+- Frontend connects via SSE (`EventSource`) for real-time updates
 - Max 50 jobs in memory; oldest completed jobs evicted
 
 ## Production Deployment

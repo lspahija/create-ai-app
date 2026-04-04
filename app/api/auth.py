@@ -9,6 +9,7 @@ from datetime import UTC, datetime, timedelta
 
 import jwt
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 _AUTH_PASSWORD = os.environ.get("AUTH_PASSWORD", "")
@@ -28,10 +29,9 @@ async def verify_auth(request: Request) -> None:
         return
     if not _AUTH_PASSWORD:
         return
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
+    token = request.cookies.get("auth_token", "")
+    if not token:
         raise HTTPException(status_code=401, detail="Authentication required")
-    token = auth_header[7:]
     try:
         jwt.decode(token, _JWT_SECRET, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
@@ -47,7 +47,7 @@ class _LoginRequest(BaseModel):
 @router.post("/api/auth/login")
 async def auth_login(req: _LoginRequest):
     if not _AUTH_PASSWORD:
-        return {"token": ""}
+        return JSONResponse({"ok": True})
     if not secrets.compare_digest(req.password.encode(), _AUTH_PASSWORD.encode()):
         raise HTTPException(status_code=401, detail="Invalid password")
     token = jwt.encode(
@@ -55,7 +55,24 @@ async def auth_login(req: _LoginRequest):
         _JWT_SECRET,
         algorithm="HS256",
     )
-    return {"token": token}
+    response = JSONResponse({"ok": True})
+    response.set_cookie(
+        key="auth_token",
+        value=token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=_JWT_EXPIRY_DAYS * 86400,
+        path="/",
+    )
+    return response
+
+
+@router.post("/api/auth/logout")
+async def auth_logout():
+    response = JSONResponse({"ok": True})
+    response.delete_cookie("auth_token", path="/")
+    return response
 
 
 @router.get("/api/auth/status")

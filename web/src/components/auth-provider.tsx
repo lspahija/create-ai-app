@@ -2,8 +2,6 @@ import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { AuthContext } from "@/hooks/use-auth";
 import { LoginPage } from "@/components/login-page";
 
-const TOKEN_KEY = "auth_token";
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [authenticated, setAuthenticated] = useState(false);
   const [authRequired, setAuthRequired] = useState(false);
@@ -21,18 +19,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
         setAuthRequired(true);
-        // Check if we have a stored token that still works
-        const token = localStorage.getItem(TOKEN_KEY);
-        if (token) {
-          const check = await fetch("/api/health", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (check.status !== 401) {
-            setAuthenticated(true);
-            setLoading(false);
-            return;
-          }
-          localStorage.removeItem(TOKEN_KEY);
+        // Check if existing cookie session is still valid
+        const check = await fetch("/api/health", { credentials: "include" });
+        if (check.status !== 401) {
+          setAuthenticated(true);
         }
       } catch {
         // If status check fails, assume no auth needed (server might be down)
@@ -47,12 +37,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
+        credentials: "include",
       });
       if (!res.ok) return false;
-      const data = await res.json();
-      if (data.token) {
-        localStorage.setItem(TOKEN_KEY, data.token);
-      }
       setAuthenticated(true);
       return true;
     } catch {
@@ -60,8 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
+  const logout = useCallback(async () => {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
     setAuthenticated(false);
   }, []);
 
