@@ -2,9 +2,10 @@
 
 import logging
 from logging.handlers import RotatingFileHandler
-from pathlib import Path
 
-LOG_DIR = Path("logs")
+from app.config import PROJECT_ROOT
+
+LOG_DIR = PROJECT_ROOT / "logs"
 LOG_FILE = LOG_DIR / "app.log"
 
 

@@ -37,10 +37,8 @@ class JobStatus:
 
 
 _jobs: dict[str, JobStatus] = {}
-_jobs_lock = threading.Lock()
-
 _stream_buffers: dict[str, list[dict]] = {}
-_stream_lock = threading.Lock()
+_lock = threading.Lock()
 
 _background_tasks: set[asyncio.Task] = set()
 
@@ -53,7 +51,7 @@ async def shutdown() -> None:
 
 
 def _evict_old_jobs() -> None:
-    """Drop oldest completed/failed jobs when over _MAX_JOBS. Caller holds _jobs_lock."""
+    """Drop oldest completed/failed jobs when over _MAX_JOBS. Caller holds _lock."""
     if len(_jobs) <= _MAX_JOBS:
         return
     finished = sorted(
@@ -67,7 +65,7 @@ def _evict_old_jobs() -> None:
 
 
 def _has_running_job(job_type: str) -> bool:
-    """Check if a job of the given type is running. Caller must hold _jobs_lock."""
+    """Check if a job of the given type is running. Caller must hold _lock."""
     return any(
         j.job_type == job_type and j.status in ("pending", "running") for j in _jobs.values()
     )
@@ -75,7 +73,7 @@ def _has_running_job(job_type: str) -> bool:
 
 def _make_progress_callback(job_id: str):
     def update(stage: str, pct: int = 0):
-        with _jobs_lock:
+        with _lock:
             job = _jobs.get(job_id)
             if job:
                 job.progress = stage
@@ -85,11 +83,11 @@ def _make_progress_callback(job_id: str):
 
 
 def _make_stream_callback(job_id: str):
-    with _stream_lock:
+    with _lock:
         _stream_buffers[job_id] = []
 
     def on_stream(block_type: str, text: str):
-        with _stream_lock:
+        with _lock:
             buf = _stream_buffers.get(job_id)
             if buf is not None and len(buf) < _MAX_STREAM_CHUNKS:
                 buf.append({"type": block_type, "text": text})
@@ -97,22 +95,14 @@ def _make_stream_callback(job_id: str):
     return on_stream
 
 
-def _complete_job(job_id: str) -> None:
-    with _jobs_lock:
-        _jobs[job_id].status = "completed"
-        _jobs[job_id].completed_at = datetime.now(UTC).isoformat()
-
-
-def _fail_job(job_id: str, error: str) -> None:
-    with _jobs_lock:
-        _jobs[job_id].status = "failed"
-        _jobs[job_id].error = error
-        _jobs[job_id].completed_at = datetime.now(UTC).isoformat()
-
-
-def _start_job(job_id: str) -> None:
-    with _jobs_lock:
-        _jobs[job_id].status = "running"
+def _update_job(job_id: str, status: str, *, error: str | None = None) -> None:
+    with _lock:
+        job = _jobs[job_id]
+        job.status = status
+        if error is not None:
+            job.error = error
+        if status in ("completed", "failed"):
+            job.completed_at = datetime.now(UTC).isoformat()
 
 
 # ── Background runners ───────────────────────────────────────────────────
@@ -123,7 +113,7 @@ async def _run_demo_job(job_id: str, params: dict) -> None:
     from app.adapters import get_adapter
     from app.config import PROJECT_ROOT, load_config
 
-    _start_job(job_id)
+    _update_job(job_id, "running")
     progress = _make_progress_callback(job_id)
     on_stream = _make_stream_callback(job_id)
     progress("Starting AI agent...", 10)
@@ -150,13 +140,13 @@ async def _run_demo_job(job_id: str, params: dict) -> None:
         )
 
         progress("Complete", 100)
-        _complete_job(job_id)
+        _update_job(job_id, "completed")
     except asyncio.CancelledError:
-        _fail_job(job_id, "Job cancelled")
+        _update_job(job_id, "failed", error="Job cancelled")
         raise
     except Exception as e:
         logger.exception("Demo job %s failed", job_id)
-        _fail_job(job_id, str(e))
+        _update_job(job_id, "failed", error=str(e))
 
 
 # ── Request models ───────────────────────────────────────────────────────
@@ -195,7 +185,7 @@ def _submit_job(
         started_at=datetime.now(UTC).isoformat(),
         params=params,
     )
-    with _jobs_lock:
+    with _lock:
         if unique and _has_running_job(job_type):
             raise HTTPException(409, f"A {job_type} job is already running")
         _jobs[job_id] = job
@@ -217,14 +207,14 @@ async def trigger_demo_job(req: DemoJobRequest):
 
 @router.get("/api/jobs")
 async def list_jobs():
-    with _jobs_lock:
+    with _lock:
         jobs = sorted(_jobs.values(), key=lambda j: j.started_at, reverse=True)
         return [asdict(j) for j in jobs]
 
 
 @router.get("/api/jobs/{job_id}")
 async def get_job(job_id: str):
-    with _jobs_lock:
+    with _lock:
         job = _jobs.get(job_id)
     if not job:
         raise HTTPException(404, f"Job not found: {job_id}")
@@ -233,7 +223,7 @@ async def get_job(job_id: str):
 
 @router.get("/api/jobs/{job_id}/stream")
 async def get_job_stream(job_id: str, after: int = Query(0, ge=0)):
-    with _stream_lock:
+    with _lock:
         buf = _stream_buffers.get(job_id)
         if buf is None:
             raise HTTPException(404, f"No stream data for job {job_id}")

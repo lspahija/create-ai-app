@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.auth import router as auth_router
 from app.api.auth import verify_auth
+from app.api.jobs import router as jobs_router
 from app.config import PROJECT_ROOT
 
 logger = logging.getLogger(__name__)
@@ -70,8 +71,6 @@ async def health():
 
 
 # ── Register routes ──────────────────────────────────────────────────────
-
-from app.api.jobs import router as jobs_router  # noqa: E402
 
 app.include_router(auth_router)
 app.include_router(jobs_router)

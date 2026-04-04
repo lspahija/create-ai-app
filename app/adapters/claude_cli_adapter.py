@@ -192,7 +192,7 @@ class ClaudeCliAdapter:
 
         # Parse envelope from the result message
         if envelope_data:
-            self._parse_envelope(result, envelope_data)
+            result.set_envelope(envelope_data)
 
         return result
 
