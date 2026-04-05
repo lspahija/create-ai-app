@@ -28,9 +28,7 @@ async def execute_strategy(
     if mode == "one-shot":
         return await _run_once(strategy, variables, cwd, on_stream, on_progress)
     elif mode == "loop":
-        return await _run_loop(
-            strategy, variables, cwd, on_stream, on_progress, cancel_event
-        )
+        return await _run_loop(strategy, variables, cwd, on_stream, on_progress, cancel_event)
     else:
         raise ValueError(f"Unknown execution mode: {mode!r}")
 
@@ -90,15 +88,11 @@ async def _run_loop(
 
         loop_vars = dict(variables)
         if policy.carry_context and last_result and last_result.output:
-            loop_vars["previous_result"] = (
-                f"Previous run output:\n\n{last_result.output}"
-            )
+            loop_vars["previous_result"] = f"Previous run output:\n\n{last_result.output}"
         elif policy.carry_context:
             loop_vars.setdefault("previous_result", "")
 
-        last_result = await _run_once(
-            strategy, loop_vars, cwd, on_stream, on_progress
-        )
+        last_result = await _run_once(strategy, loop_vars, cwd, on_stream, on_progress)
 
         if cancel_event and cancel_event.is_set():
             break
@@ -106,9 +100,7 @@ async def _run_loop(
         if not policy.max_iterations or iteration < policy.max_iterations:
             try:
                 if cancel_event:
-                    await asyncio.wait_for(
-                        cancel_event.wait(), timeout=policy.interval
-                    )
+                    await asyncio.wait_for(cancel_event.wait(), timeout=policy.interval)
                     break
                 else:
                     await asyncio.sleep(policy.interval)
