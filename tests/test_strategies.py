@@ -1,4 +1,3 @@
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -6,7 +5,6 @@ import pytest
 from app.strategies.loader import list_strategies, load_all_strategies, load_strategy
 from app.strategies.models import ExecutionPolicy, PromptConfig, Strategy
 from app.strategies.templates import render_prompt
-
 
 # ── Models ──────────────────────────────────────────────────────────────
 
@@ -39,7 +37,7 @@ def test_strategy_with_all_fields():
 
 
 def test_invalid_execution_mode():
-    with pytest.raises(Exception):  # Pydantic ValidationError
+    with pytest.raises(ValueError):  # Pydantic ValidationError
         Strategy(
             name="bad",
             prompt=PromptConfig(task="Do something"),
