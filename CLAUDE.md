@@ -18,6 +18,8 @@ AI-powered full-stack application.
 - `just dev` — Start API + frontend dev servers in one terminal
 - `just serve` — Start API server (port 8000)
 - `just test` — Run tests
+- `just lint` — Check linting + formatting (ruff check + ruff format --check)
+- `just fmt` — Auto-fix lint and formatting issues
 - `just health` — Check API availability
 - `docker compose up -d` — Build and deploy as Docker container
 
