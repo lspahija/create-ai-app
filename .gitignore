@@ -14,3 +14,4 @@ node_modules/
 web/dist/
 .ruff_cache/
 .mypy_cache/
+.DS_Store

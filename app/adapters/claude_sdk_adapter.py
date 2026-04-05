@@ -19,9 +19,9 @@ class ClaudeSdkAdapter:
         prompt: str,
         cwd: Path,
         timeout: int = 900,
-        max_turns: int = 30,
+        max_turns: int | None = None,
         model: str | None = None,
-        effort: str | None = None,
+        options: dict[str, str] | None = None,
         on_stream: Callable[[str, str], None] | None = None,
     ) -> AgentResult:
         from claude_agent_sdk import (
@@ -35,22 +35,25 @@ class ClaudeSdkAdapter:
             query,
         )
 
-        options = ClaudeAgentOptions(
+        turns = max_turns if max_turns is not None else 30
+        effort = (options or {}).get("effort")
+
+        agent_options = ClaudeAgentOptions(
             permission_mode="bypassPermissions",
-            max_turns=max_turns,
+            max_turns=turns,
             cwd=str(cwd),
         )
         if model:
-            options.model = model
+            agent_options.model = model
         if effort:
-            options.effort = effort
+            agent_options.effort = effort
 
         result = AgentResult()
         start = time.monotonic()
 
         try:
             async with asyncio.timeout(timeout):
-                async for message in query(prompt=prompt, options=options):
+                async for message in query(prompt=prompt, options=agent_options):
                     if isinstance(message, AssistantMessage):
                         if on_stream:
                             for block in message.content:

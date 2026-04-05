@@ -5,7 +5,7 @@
 The application is a full-stack web app with an AI agent integration layer.
 
 ```
-Browser → React SPA → FastAPI Backend → AI Adapter → Claude CLI / SDK
+Browser → React SPA → FastAPI Backend → Strategy → AI Adapter → Claude / Codex / Gemini
 ```
 
 ## Backend (`app/`)
@@ -28,11 +28,28 @@ Provider-agnostic adapter pattern using Python's Protocol:
 To add a new adapter (e.g., OpenAI Codex):
 1. Create `app/adapters/codex_adapter.py` implementing `BaseAdapter`
 2. Add a branch to `factory.py`
-3. Set `default_agent: codex` in config.yaml
+3. Set `agent: codex` in your strategy YAML files
+
+### Strategies (`app/strategies/`)
+
+The first-class unit for agent configuration. Every job uses a strategy. No separate agent config file.
+
+```
+API request → Strategy (YAML) → Executor → Adapter → AI provider
+```
+
+- **`models.py`** — Pydantic models: `Strategy`, `PromptConfig`, `ExecutionPolicy`
+- **`loader.py`** — Discovers and validates YAML files from `strategies/` directory
+- **`templates.py`** — Renders prompt templates with `$variable` substitution
+- **`executor.py`** — Executes strategies via adapter (one-shot or loop mode)
+
+Each strategy is self-contained: prompt, adapter, model, limits, and provider-specific options. See `CLAUDE.md` for the full YAML schema reference.
+
+To add a strategy: create `strategies/my-strategy.yaml` — only `prompt.task` is required.
 
 ### Configuration (`app/config.py`)
 
-YAML config loaded into Pydantic models. Add your own config fields here.
+Minimal YAML config for infrastructure settings. Agent config lives in strategies.
 
 ### Logging (`app/log.py`)
 

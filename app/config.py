@@ -14,11 +14,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 
 
 class Config(BaseModel):
-    default_agent: str = "claude-cli"  # "claude-cli" (subprocess) or "claude-sdk" (Agent SDK)
-    agent_model: str = "claude-opus-4-6"
-    agent_effort: str = "max"
-    agent_max_turns: int = 30
-    agent_timeout_seconds: int = 900
+    default_agent: str = "claude-cli"  # used by health check
 
 
 def load_config(path: str | Path = "config.yaml") -> Config:

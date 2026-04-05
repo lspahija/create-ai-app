@@ -112,50 +112,9 @@ def _update_job(job_id: str, status: str, *, error: str | None = None) -> None:
 # ── Background runners ───────────────────────────────────────────────────
 
 
-async def _run_demo_job(job_id: str, params: dict) -> None:
-    """Run the AI adapter to think about a user-supplied topic."""
-    from app.adapters import get_adapter
-    from app.config import PROJECT_ROOT, load_config
-
-    _update_job(job_id, "running")
-    progress = _make_progress_callback(job_id)
-    on_stream = _make_stream_callback(job_id)
-    progress("Starting AI agent...", 10)
-
-    try:
-        config = load_config(PROJECT_ROOT / "config.yaml")
-        adapter = get_adapter(config.default_agent)
-
-        topic = params.get("topic", "the meaning of life")
-        prompt = (
-            "Think about the following topic and share your thoughts"
-            f" in a few paragraphs:\n\n{topic}"
-        )
-
-        progress("Running...", 30)
-        await adapter.run(
-            prompt=prompt,
-            cwd=PROJECT_ROOT,
-            timeout=config.agent_timeout_seconds,
-            max_turns=config.agent_max_turns,
-            model=config.agent_model,
-            effort=config.agent_effort,
-            on_stream=on_stream,
-        )
-
-        progress("Complete", 100)
-        _update_job(job_id, "completed")
-    except asyncio.CancelledError:
-        _update_job(job_id, "failed", error="Job cancelled")
-        raise
-    except Exception as e:
-        logger.exception("Demo job %s failed", job_id)
-        _update_job(job_id, "failed", error=str(e))
-
-
 async def _run_strategy_job(job_id: str, params: dict) -> None:
     """Run an AI agent strategy."""
-    from app.config import PROJECT_ROOT, load_config
+    from app.config import PROJECT_ROOT
     from app.strategies.executor import execute_strategy
     from app.strategies.loader import load_strategy
 
@@ -165,9 +124,7 @@ async def _run_strategy_job(job_id: str, params: dict) -> None:
     progress("Loading strategy...", 5)
 
     try:
-        config = load_config(PROJECT_ROOT / "config.yaml")
         strategy = load_strategy(params["strategy"])
-
         cwd = Path(params.get("cwd") or PROJECT_ROOT)
         variables = params.get("variables", {})
 
@@ -178,7 +135,6 @@ async def _run_strategy_job(job_id: str, params: dict) -> None:
         progress("Executing strategy...", 10)
         await execute_strategy(
             strategy=strategy,
-            global_config=config,
             variables=variables,
             cwd=cwd,
             on_stream=on_stream,
@@ -256,7 +212,12 @@ def _submit_job(
 
 @router.post("/api/demo-job", status_code=202)
 async def trigger_demo_job(req: DemoJobRequest):
-    return _submit_job("demo", req.model_dump(), _run_demo_job, unique=True)
+    return _submit_job(
+        "strategy",
+        {"strategy": "one-shot", "variables": {"topic": req.topic}},
+        _run_strategy_job,
+        unique=True,
+    )
 
 
 @router.post("/api/jobs", status_code=202)

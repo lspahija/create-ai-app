@@ -48,9 +48,9 @@ class BaseAdapter(Protocol):
         prompt: str,
         cwd: Path,
         timeout: int = 900,
-        max_turns: int = 30,
+        max_turns: int | None = None,
         model: str | None = None,
-        effort: str | None = None,
+        options: dict[str, str] | None = None,
         on_stream: Callable[[str, str], None] | None = None,
     ) -> AgentResult: ...
 

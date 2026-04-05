@@ -12,12 +12,10 @@ prompt:
 
     $previous_result
 
+max_turns: 20
+timeout: 300
+
 execution:
   mode: loop
   interval: 600
   carry_context: true
-  max_iterations: 0
-
-agent:
-  max_turns: 20
-  timeout: 300

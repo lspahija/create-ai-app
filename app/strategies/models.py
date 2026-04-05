@@ -12,37 +12,6 @@ class PromptConfig(BaseModel):
     task: str
 
 
-class SubagentConfig(BaseModel):
-    """A Claude Code native subagent definition."""
-
-    name: str
-    description: str
-    model: str = ""
-    prompt: str = ""
-    tools: list[str] = Field(default_factory=list)
-
-
-class TeamConfig(BaseModel):
-    """Claude Code experimental agent team configuration."""
-
-    enabled: bool = True
-    size: int = 2
-    lead_prompt: str = ""
-
-
-class AgentOverrides(BaseModel):
-    """Override global config.yaml agent settings per-strategy.
-
-    Zero-values ("" or 0) mean "not set, use global default".
-    """
-
-    agent_type: str = ""
-    model: str = ""
-    effort: str = ""
-    max_turns: int = 0
-    timeout: int = 0
-
-
 class ExecutionPolicy(BaseModel):
     """How the strategy executes over time."""
 
@@ -53,13 +22,18 @@ class ExecutionPolicy(BaseModel):
 
 
 class Strategy(BaseModel):
-    """Complete specification for how an AI agent approaches a task."""
+    """Complete specification for how an AI agent approaches a task.
+
+    Each strategy is self-contained — all agent configuration lives here,
+    not in a separate config file.
+    """
 
     name: str
     description: str = ""
     prompt: PromptConfig
-    agent: AgentOverrides = Field(default_factory=AgentOverrides)
+    agent: str = "claude-cli"
+    model: str | None = None
+    max_turns: int | None = None
+    timeout: int = 900
+    options: dict[str, str] = Field(default_factory=dict)
     execution: ExecutionPolicy = Field(default_factory=ExecutionPolicy)
-    subagents: list[SubagentConfig] = Field(default_factory=list)
-    team: TeamConfig | None = None
-    env: dict[str, str] = Field(default_factory=dict)

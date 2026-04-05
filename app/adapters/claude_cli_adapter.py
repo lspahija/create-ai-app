@@ -24,31 +24,34 @@ class ClaudeCliAdapter:
         prompt: str,
         cwd: Path,
         timeout: int = 900,
-        max_turns: int = 30,
+        max_turns: int | None = None,
         model: str | None = None,
-        effort: str | None = None,
+        options: dict[str, str] | None = None,
         on_stream: Callable[[str, str], None] | None = None,
     ) -> AgentResult:
         """Run claude and unwrap the JSON envelope.
 
         Args:
+            options: Provider-specific options. Supports "effort".
             on_stream: Optional callback(block_type, text) called for each
                        content block as it arrives. block_type is "thinking",
                        "text", "tool_use", or "tool_result".
         """
+        turns = max_turns if max_turns is not None else 30
+        effort = (options or {}).get("effort")
         if on_stream:
             return await asyncio.to_thread(
                 self._run_streaming,
                 prompt,
                 cwd,
                 timeout,
-                max_turns,
+                turns,
                 model,
                 effort,
                 on_stream,
             )
 
-        cmd = self._build_cmd(prompt, max_turns, model, effort, output_format="json")
+        cmd = self._build_cmd(prompt, turns, model, effort, output_format="json")
         result = await asyncio.to_thread(self._run_subprocess, cmd, cwd, timeout)
         try:
             envelope = json.loads(result.output)
