@@ -31,48 +31,31 @@ Optional password auth via AUTH_PASSWORD env var (JWT-based, 30-day tokens).
 
 ## Strategies
 
-Strategies are YAML files in `strategies/` that fully define how an AI agent approaches a task. Every job uses a strategy — there is no separate agent config.
-
-### Strategy YAML Reference
+YAML files in `strategies/` — the first-class unit for agent config. Every job uses one. See [docs/STRATEGIES.md](docs/STRATEGIES.md) for the full human-readable reference.
 
 ```yaml
-# All keys except prompt.task are optional — defaults shown below.
-
-name: my-strategy              # auto-derived from filename if omitted
-description: What this does    # shown in GET /api/strategies
-
+# Only prompt.task is required. Defaults shown.
+name: my-strategy              # auto-derived from filename
+description: ""                # shown in GET /api/strategies
 prompt:
-  system: ""                   # optional role/context prepended to task
-  task: |                      # REQUIRED — the actual work prompt
-    Do something with $variable
-    # Use $name or ${name} for variable substitution.
-    # Variables are passed via the API at runtime.
-
-agent: claude-cli              # which adapter (claude-cli, claude-sdk, etc.)
-model: null                    # model name, or null = adapter default
-max_turns: null                # max agent turns, or null = adapter default
-timeout: 900                   # seconds before timeout
-
-options: {}                    # provider-specific key-value pairs
-                               # e.g. { effort: max } for Claude
-
+  system: ""                   # optional role/context
+  task: ...                    # REQUIRED — $variable substitution
+agent: claude-cli              # which adapter
+model: null                    # null = adapter default
+max_turns: null                # null = adapter default
+timeout: 900                   # seconds
+options: {}                    # provider-specific (e.g. effort: max)
 execution:
   mode: one-shot               # one-shot | loop
   interval: 300                # loop: seconds between runs
   max_iterations: 0            # loop: 0 = infinite
-  carry_context: false         # loop: inject $previous_result variable
+  carry_context: false         # loop: inject $previous_result
 ```
 
-### API
-
-- `POST /api/jobs {"strategy": "one-shot", "variables": {"topic": "..."}}` — run a strategy
-- `GET /api/strategies` — list available strategies
-- `POST /api/jobs/{id}/cancel` — cancel a running job (useful for loop mode)
-- `GET /api/jobs/{id}/stream` — SSE stream of agent output
-
-### Adding a strategy
-
-Create `strategies/my-strategy.yaml` — only `prompt.task` is required, everything else has defaults.
+API: `POST /api/jobs {"strategy": "name", "variables": {...}}`
+List: `GET /api/strategies`
+Cancel: `POST /api/jobs/{id}/cancel`
+Stream: `GET /api/jobs/{id}/stream`
 
 Code: `app/strategies/` — models, loader, executor, templates.
 
