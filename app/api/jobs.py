@@ -138,7 +138,7 @@ async def _run_strategy_job(job_id: str, params: dict) -> None:
             variables=variables,
             cwd=cwd,
             on_stream=on_stream,
-            on_progress=lambda stage, pct: progress(stage, pct),
+            on_progress=progress,
             cancel_event=cancel_event,
         )
 

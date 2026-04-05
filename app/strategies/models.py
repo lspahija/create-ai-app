@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -15,7 +17,7 @@ class PromptConfig(BaseModel):
 class ExecutionPolicy(BaseModel):
     """How the strategy executes over time."""
 
-    mode: str = "one-shot"  # "one-shot" | "loop"
+    mode: Literal["one-shot", "loop"] = "one-shot"
     interval: int = 300  # loop: seconds between runs
     max_iterations: int = 0  # loop: 0 = infinite
     carry_context: bool = False  # loop: inject $previous_result
@@ -35,5 +37,5 @@ class Strategy(BaseModel):
     model: str | None = None
     max_turns: int | None = None
     timeout: int = 900
-    options: dict[str, str] = Field(default_factory=dict)
+    options: dict[str, Any] = Field(default_factory=dict)
     execution: ExecutionPolicy = Field(default_factory=ExecutionPolicy)

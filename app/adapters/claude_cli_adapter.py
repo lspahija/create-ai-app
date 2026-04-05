@@ -26,7 +26,7 @@ class ClaudeCliAdapter:
         timeout: int = 900,
         max_turns: int | None = None,
         model: str | None = None,
-        options: dict[str, str] | None = None,
+        options: dict | None = None,
         on_stream: Callable[[str, str], None] | None = None,
     ) -> AgentResult:
         """Run claude and unwrap the JSON envelope.
