@@ -25,7 +25,7 @@ dev:
     #!/usr/bin/env bash
     trap 'kill 0' EXIT
     uv run --extra web uvicorn app.api:app \
-      --reload --reload-dir app --port 8000 &
+      --host 0.0.0.0 --reload --reload-dir app --port 8000 &
     cd web && npm run dev
 
 # Start API server
