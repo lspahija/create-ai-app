@@ -19,6 +19,24 @@ All development happens inside the devcontainer. See [docs/DEVELOPMENT.md](docs/
 
 Run `just` inside the container to list all available commands.
 
+## Create a New Project
+
+Clone the template, then rewire remotes so you can pull upstream improvements later:
+
+```bash
+git clone https://github.com/lspahija/create-ai-app.git my-project
+cd my-project
+git remote rename origin upstream
+git remote add origin git@github.com:youruser/my-project.git
+git push -u origin main
+```
+
+To pull template updates into your project:
+
+```bash
+git fetch upstream && git merge upstream/main
+```
+
 ## Project Structure
 
 ```
