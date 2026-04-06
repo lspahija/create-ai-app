@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Save, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,22 +41,21 @@ export function StrategyEditorPage() {
   const updateMutation = useUpdateStrategy();
 
   const [form, setForm] = useState<StrategyCreateRequest>(DEFAULT_FORM);
-
-  useEffect(() => {
-    if (existing) {
-      setForm({
-        name: existing.name,
-        description: existing.description,
-        prompt: { ...existing.prompt },
-        agent: existing.agent,
-        model: existing.model,
-        max_turns: existing.max_turns,
-        timeout: existing.timeout,
-        options: { ...existing.options },
-        execution: { ...existing.execution },
-      });
-    }
-  }, [existing]);
+  const [lastExisting, setLastExisting] = useState(existing);
+  if (existing && existing !== lastExisting) {
+    setLastExisting(existing);
+    setForm({
+      name: existing.name,
+      description: existing.description,
+      prompt: { ...existing.prompt },
+      agent: existing.agent,
+      model: existing.model,
+      max_turns: existing.max_turns,
+      timeout: existing.timeout,
+      options: { ...existing.options },
+      execution: { ...existing.execution },
+    });
+  }
 
   function update<K extends keyof StrategyCreateRequest>(key: K, val: StrategyCreateRequest[K]) {
     setForm((f) => ({ ...f, [key]: val }));
@@ -83,7 +82,8 @@ export function StrategyEditorPage() {
     }
 
     if (isEdit) {
-      const { name: _, ...data } = form;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { name: _name, ...data } = form;
       updateMutation.mutate(
         { name: name!, data },
         {
