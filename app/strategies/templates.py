@@ -2,9 +2,21 @@
 
 from __future__ import annotations
 
+import re
 from string import Template
 
 from app.strategies.models import PromptConfig
+
+_VAR_RE = re.compile(r"\$(?:(\w+)|\{(\w+)\})")
+
+
+def extract_variables(prompt_config: PromptConfig) -> list[str]:
+    """Extract $variable names from system and task templates."""
+    found: set[str] = set()
+    for text in [prompt_config.system, prompt_config.task]:
+        for m in _VAR_RE.finditer(text):
+            found.add(m.group(1) or m.group(2))
+    return sorted(found)
 
 
 def render_prompt(prompt_config: PromptConfig, variables: dict[str, str]) -> str:

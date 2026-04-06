@@ -16,6 +16,8 @@ from app.api.auth import router as auth_router
 from app.api.auth import verify_auth
 from app.api.jobs import router as jobs_router
 from app.api.jobs import shutdown as _shutdown_jobs
+from app.api.settings import router as settings_router
+from app.api.strategies import router as strategies_router
 from app.config import PROJECT_ROOT
 
 logger = logging.getLogger(__name__)
@@ -73,6 +75,8 @@ async def health():
 
 app.include_router(auth_router)
 app.include_router(jobs_router)
+app.include_router(strategies_router)
+app.include_router(settings_router)
 
 # ── Static files (production) ────────────────────────────────────────────
 

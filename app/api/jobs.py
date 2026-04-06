@@ -165,10 +165,6 @@ class StrategyJobRequest(BaseModel):
     variables: dict[str, str] = {}
 
 
-class DemoJobRequest(BaseModel):
-    topic: str = "the meaning of life"
-
-
 # ── Trigger endpoints ────────────────────────────────────────────────────
 
 
@@ -210,30 +206,9 @@ def _submit_job(
     return {"job_id": job_id, "status": "pending"}
 
 
-@router.post("/api/demo-job", status_code=202)
-async def trigger_demo_job(req: DemoJobRequest):
-    return _submit_job(
-        "strategy",
-        {"strategy": "one-shot", "variables": {"topic": req.topic}},
-        _run_strategy_job,
-        unique=True,
-    )
-
-
 @router.post("/api/jobs", status_code=202)
 async def trigger_strategy_job(req: StrategyJobRequest):
     return _submit_job("strategy", req.model_dump(), _run_strategy_job)
-
-
-@router.get("/api/strategies")
-async def get_strategies():
-    from app.strategies.loader import load_all_strategies
-
-    strategies = load_all_strategies()
-    return [
-        {"name": s.name, "description": s.description, "mode": s.execution.mode}
-        for s in strategies.values()
-    ]
 
 
 @router.post("/api/jobs/{job_id}/cancel", status_code=200)

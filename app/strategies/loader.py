@@ -50,3 +50,22 @@ def load_all_strategies(strategies_dir: Path = STRATEGIES_DIR) -> dict[str, Stra
         except (ValueError, FileNotFoundError) as e:
             logger.warning("Skipping strategy %s: %s", name, e)
     return strategies
+
+
+def save_strategy(strategy: Strategy, strategies_dir: Path = STRATEGIES_DIR) -> Path:
+    """Write a Strategy to a YAML file. Returns the file path."""
+    data = strategy.model_dump(mode="json")
+    data.pop("name", None)  # name derived from filename
+    path = strategies_dir / f"{strategy.name}.yaml"
+    strategies_dir.mkdir(parents=True, exist_ok=True)
+    with open(path, "w") as f:
+        yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+    return path
+
+
+def delete_strategy(name: str, strategies_dir: Path = STRATEGIES_DIR) -> None:
+    """Delete a strategy YAML file."""
+    path = strategies_dir / f"{name}.yaml"
+    if not path.exists():
+        raise FileNotFoundError(f"Strategy not found: {path}")
+    path.unlink()
