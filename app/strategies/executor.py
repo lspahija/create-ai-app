@@ -22,13 +22,16 @@ async def execute_strategy(
     on_stream: Callable[[str, str], None] | None = None,
     on_progress: Callable[[str, int], None] | None = None,
     cancel_event: asyncio.Event | None = None,
+    on_iteration_result: Callable[[int, AgentResult], None] | None = None,
 ) -> AgentResult:
     """Execute a strategy according to its execution policy."""
     mode = strategy.execution.mode
     if mode == "one-shot":
         return await _run_once(strategy, variables, cwd, on_stream, on_progress)
     elif mode == "loop":
-        return await _run_loop(strategy, variables, cwd, on_stream, on_progress, cancel_event)
+        return await _run_loop(
+            strategy, variables, cwd, on_stream, on_progress, cancel_event, on_iteration_result
+        )
     else:
         raise ValueError(f"Unknown execution mode: {mode!r}")
 
@@ -70,6 +73,7 @@ async def _run_loop(
     on_stream: Callable[[str, str], None] | None,
     on_progress: Callable[[str, int], None] | None,
     cancel_event: asyncio.Event | None,
+    on_iteration_result: Callable[[int, AgentResult], None] | None = None,
 ) -> AgentResult:
     """Repeatedly run the agent on an interval."""
     policy = strategy.execution
@@ -93,6 +97,9 @@ async def _run_loop(
             loop_vars.setdefault("previous_result", "")
 
         last_result = await _run_once(strategy, loop_vars, cwd, on_stream, on_progress)
+
+        if on_iteration_result:
+            on_iteration_result(iteration, last_result)
 
         if cancel_event and cancel_event.is_set():
             break

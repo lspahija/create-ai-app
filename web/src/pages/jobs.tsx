@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/api/client";
 import { useElapsed } from "@/hooks/use-elapsed";
-import { ThinkingViewer } from "@/components/thinking-viewer";
+import { ResultViewer } from "@/components/result-viewer";
 import { toast } from "sonner";
 import type { JobStatus } from "@/api/types";
 
@@ -145,7 +145,7 @@ export function JobsPage() {
         </Card>
       )}
 
-      <ThinkingViewer
+      <ResultViewer
         jobId={viewJobId}
         open={!!viewJobId}
         onOpenChange={(open) => !open && setViewJobId(null)}

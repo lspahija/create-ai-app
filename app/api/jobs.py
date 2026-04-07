@@ -37,6 +37,9 @@ class JobStatus:
     params: dict = field(default_factory=dict)
     progress: str = ""
     progress_pct: int = 0
+    result: str | None = None
+    result_metadata: dict = field(default_factory=dict)
+    iteration_results: list[dict] = field(default_factory=list)
 
 
 _jobs: dict[str, JobStatus] = {}
@@ -133,14 +136,49 @@ async def _run_strategy_job(job_id: str, params: dict) -> None:
             _cancel_events[job_id] = cancel_event
 
         progress("Executing strategy...", 10)
-        await execute_strategy(
+
+        def on_iteration_result(iteration: int, result) -> None:
+            with _lock:
+                job = _jobs.get(job_id)
+                if job is not None:
+                    job.iteration_results.append(
+                        {
+                            "iteration": iteration,
+                            "output": result.output or "",
+                            "metadata": {
+                                k: v
+                                for k, v in {
+                                    "cost_usd": result.metadata.get("cost_usd"),
+                                    "num_turns": result.metadata.get("num_turns"),
+                                    "duration_seconds": result.duration_seconds,
+                                }.items()
+                                if v is not None
+                            },
+                        }
+                    )
+
+        agent_result = await execute_strategy(
             strategy=strategy,
             variables=variables,
             cwd=cwd,
             on_stream=on_stream,
             on_progress=progress,
             cancel_event=cancel_event,
+            on_iteration_result=on_iteration_result,
         )
+
+        with _lock:
+            job = _jobs[job_id]
+            job.result = agent_result.output or None
+            job.result_metadata = {
+                k: v
+                for k, v in {
+                    "cost_usd": agent_result.metadata.get("cost_usd"),
+                    "num_turns": agent_result.metadata.get("num_turns"),
+                    "duration_seconds": agent_result.duration_seconds,
+                }.items()
+                if v is not None
+            }
 
         progress("Complete", 100)
         _update_job(job_id, "completed")

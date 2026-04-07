@@ -25,7 +25,7 @@ export function ThinkingViewer({ jobId, open, onOpenChange }: ThinkingViewerProp
   );
 }
 
-function ThinkingViewerContent({ jobId, open }: { jobId: string | null; open: boolean }) {
+export function ThinkingViewerContent({ jobId, open }: { jobId: string | null; open: boolean }) {
   const [chunks, setChunks] = useState<StreamChunk[]>([]);
   const { scrollContainerRef, bottomRef, showScrollButton, scrollToBottom } =
     useAutoScroll([chunks]);

@@ -12,6 +12,9 @@ const MOCK_JOB = {
   params: { strategy: "test", variables: {} },
   progress: "Running...",
   progress_pct: 50,
+  result: null,
+  result_metadata: {},
+  iteration_results: [],
 };
 
 function sseBody(chunks: Array<{ type: string; text: string }>): string {
@@ -81,6 +84,8 @@ function mockApiRoutes(
 async function openThinkingViewer(page: import("@playwright/test").Page) {
   await page.goto("/jobs");
   await page.getByTitle("View output").click();
+  // Switch to Thinking tab (ResultViewer defaults to Result tab)
+  await page.getByRole("tab", { name: "Thinking" }).click();
   const container = page.getByTestId("thinking-scroll-container");
   await expect(container).toBeVisible();
   return container;

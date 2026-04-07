@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useStrategy } from "@/hooks/use-strategies";
 import { api } from "@/api/client";
-import { ThinkingViewer } from "@/components/thinking-viewer";
+import { ResultViewer } from "@/components/result-viewer";
 import { toast } from "sonner";
 
 export function RunJobPage() {
@@ -115,7 +115,7 @@ export function RunJobPage() {
         </Button>
       </div>
 
-      <ThinkingViewer jobId={jobId} open={showViewer} onOpenChange={setShowViewer} />
+      <ResultViewer jobId={jobId} open={showViewer} onOpenChange={setShowViewer} />
     </div>
   );
 }

@@ -51,6 +51,13 @@ export interface JobStatus {
   params: { strategy: string; variables: Record<string, string> };
   progress: string;
   progress_pct: number;
+  result: string | null;
+  result_metadata: Record<string, unknown>;
+  iteration_results: Array<{
+    iteration: number;
+    output: string;
+    metadata: Record<string, unknown>;
+  }>;
 }
 
 export interface JobResponse {
