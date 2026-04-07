@@ -1,11 +1,13 @@
-import { useState, useEffect, useRef } from "react";
-import { Brain, Terminal, ArrowRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Brain, Terminal, ArrowRight, ArrowDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { useAutoScroll } from "@/hooks/use-auto-scroll";
 import type { StreamChunk } from "@/api/types";
 
 interface ThinkingViewerProps {
@@ -25,7 +27,8 @@ export function ThinkingViewer({ jobId, open, onOpenChange }: ThinkingViewerProp
 
 function ThinkingViewerContent({ jobId, open }: { jobId: string | null; open: boolean }) {
   const [chunks, setChunks] = useState<StreamChunk[]>([]);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const { scrollContainerRef, bottomRef, showScrollButton, scrollToBottom } =
+    useAutoScroll([chunks]);
 
   // Stream chunks via SSE
   useEffect(() => {
@@ -40,11 +43,6 @@ function ThinkingViewerContent({ jobId, open }: { jobId: string | null; open: bo
     return () => es.close();
   }, [jobId, open]);
 
-  // Auto-scroll to bottom
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chunks]);
-
   // Group consecutive chunks of the same type for display
   const sections = groupChunks(chunks);
 
@@ -56,44 +54,62 @@ function ThinkingViewerContent({ jobId, open }: { jobId: string | null; open: bo
           AI Thinking
         </DialogTitle>
       </DialogHeader>
-      <div className="flex-1 overflow-y-auto space-y-3 min-h-0">
-        {sections.length === 0 && (
-          <p className="text-sm text-muted-foreground py-4 text-center">
-            Waiting for AI to start thinking...
-          </p>
+      <div className="relative flex-1 min-h-0 flex flex-col">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 min-h-0 overflow-y-auto space-y-3"
+          data-testid="thinking-scroll-container"
+        >
+          {sections.length === 0 && (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              Waiting for AI to start thinking...
+            </p>
+          )}
+          {sections.map((section, i) => (
+            <div key={i} data-testid="thinking-section">
+              {section.type === "thinking" ? (
+                <div className="bg-muted/50 rounded-lg p-3 border border-dashed">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Thinking</p>
+                  <p className="text-sm whitespace-pre-wrap">{section.text}</p>
+                </div>
+              ) : section.type === "tool_use" ? (
+                <div className="bg-blue-500/5 rounded-lg p-3 border border-blue-500/20">
+                  <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1 flex items-center gap-1">
+                    <ArrowRight className="size-3" />
+                    Tool Call
+                  </p>
+                  <pre className="text-xs whitespace-pre-wrap font-mono bg-background/50 rounded p-2 mt-1 overflow-x-auto">{section.text}</pre>
+                </div>
+              ) : section.type === "tool_result" ? (
+                <div className="bg-green-500/5 rounded-lg p-3 border border-green-500/20">
+                  <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1 flex items-center gap-1">
+                    <Terminal className="size-3" />
+                    Tool Result
+                  </p>
+                  <pre className="text-xs whitespace-pre-wrap font-mono bg-background/50 rounded p-2 mt-1 overflow-x-auto max-h-60 overflow-y-auto">{section.text}</pre>
+                </div>
+              ) : (
+                <div className="rounded-lg p-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Response</p>
+                  <p className="text-sm whitespace-pre-wrap">{section.text}</p>
+                </div>
+              )}
+            </div>
+          ))}
+          <div ref={bottomRef} />
+        </div>
+        {showScrollButton && (
+          <Button
+            variant="secondary"
+            size="icon-sm"
+            className="absolute bottom-3 right-3 rounded-full shadow-md z-10 opacity-80 hover:opacity-100 transition-opacity"
+            onClick={scrollToBottom}
+            aria-label="Scroll to bottom"
+            data-testid="scroll-to-bottom-btn"
+          >
+            <ArrowDown className="size-3.5" />
+          </Button>
         )}
-        {sections.map((section, i) => (
-          <div key={i}>
-            {section.type === "thinking" ? (
-              <div className="bg-muted/50 rounded-lg p-3 border border-dashed">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Thinking</p>
-                <p className="text-sm whitespace-pre-wrap">{section.text}</p>
-              </div>
-            ) : section.type === "tool_use" ? (
-              <div className="bg-blue-500/5 rounded-lg p-3 border border-blue-500/20">
-                <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1 flex items-center gap-1">
-                  <ArrowRight className="size-3" />
-                  Tool Call
-                </p>
-                <pre className="text-xs whitespace-pre-wrap font-mono bg-background/50 rounded p-2 mt-1 overflow-x-auto">{section.text}</pre>
-              </div>
-            ) : section.type === "tool_result" ? (
-              <div className="bg-green-500/5 rounded-lg p-3 border border-green-500/20">
-                <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1 flex items-center gap-1">
-                  <Terminal className="size-3" />
-                  Tool Result
-                </p>
-                <pre className="text-xs whitespace-pre-wrap font-mono bg-background/50 rounded p-2 mt-1 overflow-x-auto max-h-60 overflow-y-auto">{section.text}</pre>
-              </div>
-            ) : (
-              <div className="rounded-lg p-3">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Response</p>
-                <p className="text-sm whitespace-pre-wrap">{section.text}</p>
-              </div>
-            )}
-          </div>
-        ))}
-        <div ref={bottomRef} />
       </div>
     </DialogContent>
   );

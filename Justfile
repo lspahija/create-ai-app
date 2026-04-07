@@ -52,6 +52,10 @@ dashboard:
 health:
     curl -sf http://localhost:8000/api/health && echo " OK" || echo " FAIL"
 
+# Run Playwright E2E tests for the frontend
+test-e2e:
+    cd web && npx playwright test
+
 # Pull latest devcontainer updates from upstream
 devcontainer-update:
     git fetch upstream-devcontainer
