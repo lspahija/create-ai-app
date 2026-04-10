@@ -100,7 +100,7 @@ function ResultViewerContent({ jobId, open }: { jobId: string | null; open: bool
                   <SelectItem value="latest">Latest result</SelectItem>
                   {[...job!.iteration_results].reverse().map((iter) => (
                     <SelectItem key={iter.iteration} value={String(iter.iteration)}>
-                      Iteration {iter.iteration}
+                      Iteration {iter.iteration} {iter.success ? "(success)" : "(failed)"}
                     </SelectItem>
                   ))}
                 </SelectContent>

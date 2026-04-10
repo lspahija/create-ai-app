@@ -144,6 +144,7 @@ async def _run_strategy_job(job_id: str, params: dict) -> None:
                     job.iteration_results.append(
                         {
                             "iteration": iteration,
+                            "success": result.success,
                             "output": result.output or "",
                             "metadata": {
                                 k: v

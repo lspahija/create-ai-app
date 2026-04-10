@@ -131,11 +131,23 @@ Loop mode only. Seconds to wait between runs. The wait is interruptible — canc
 
 Loop mode only. Stop after this many runs. `0` means run forever until cancelled.
 
+**`execution.max_consecutive_failures`** (integer, default: `3`)
+
+Loop mode only. Abort the loop after this many failures in a row. `0` disables the check (loop runs until `max_iterations` or cancellation). Uses exponential backoff between failed iterations — wait time doubles after each failure, capped at 8x the normal interval.
+
+**`execution.self_assess`** (boolean, default: `true`)
+
+Loop mode only. When `true`, the agent is instructed to include a `[RESULT: SUCCESS]` or `[RESULT: FAILED]` marker at the end of each iteration's output. The orchestrator uses this to determine whether the iteration made meaningful progress, overriding the default exit-code-based success check.
+
+This is the key difference between "the process didn't crash" and "the agent accomplished something useful." Without self-assessment, an agent that produces broken code with exit code 0 is treated as successful. With it, the agent evaluates its own work and reports honestly.
+
+If the agent doesn't include a marker, the orchestrator falls back to exit-code-based success.
+
 **`execution.carry_context`** (boolean, default: `false`)
 
-Loop mode only. When `true`, the output from each run is injected into the next run as the `$previous_result` variable. This lets the agent build on its previous work across runs — useful for iterative refinement.
+Loop mode only. When `true`, cumulative notes from all prior iterations are injected into the next run as the `$notes` variable. Each note is a one-line summary with the iteration number and success/failure status. This lets the agent build on its previous work across runs — useful for iterative refinement. The `$previous_result` variable is also set (as an alias for `$notes`) for backwards compatibility.
 
-If `true` but there's no previous output yet (first iteration), `$previous_result` is set to an empty string.
+If `true` but there are no previous notes yet (first iteration), `$notes` is set to an empty string.
 
 ## Examples
 
@@ -175,7 +187,7 @@ prompt:
   system: You are a project maintenance agent.
   task: |
     Check the project for failing tests and lint errors. Fix any issues.
-    $previous_result
+    $notes
 
 max_turns: 20
 timeout: 300
@@ -184,6 +196,8 @@ execution:
   mode: loop
   interval: 600
   carry_context: true
+  max_consecutive_failures: 3
+  self_assess: true
 ```
 
 ## API

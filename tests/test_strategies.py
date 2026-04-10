@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from app.strategies.executor import _parse_self_assessment
 from app.strategies.loader import list_strategies, load_all_strategies, load_strategy
 from app.strategies.models import ExecutionPolicy, PromptConfig, Strategy
 from app.strategies.templates import render_prompt
@@ -29,11 +30,20 @@ def test_strategy_with_all_fields():
         max_turns=100,
         timeout=3600,
         options={"effort": "max", "temperature": 0.7},
-        execution=ExecutionPolicy(mode="loop", interval=60, max_iterations=5, carry_context=True),
+        execution=ExecutionPolicy(
+            mode="loop",
+            interval=60,
+            max_iterations=5,
+            carry_context=True,
+            max_consecutive_failures=5,
+            self_assess=True,
+        ),
     )
     assert s.agent == "claude-sdk"
     assert s.options["temperature"] == 0.7  # preserved as float, not coerced to str
     assert s.execution.carry_context is True
+    assert s.execution.max_consecutive_failures == 5
+    assert s.execution.self_assess is True
 
 
 def test_invalid_execution_mode():
@@ -104,6 +114,28 @@ def test_render_prompt_no_system():
     config = PromptConfig(task="Just the task")
     result = render_prompt(config, {})
     assert result == "Just the task"
+
+
+def test_parse_self_assessment_success():
+    assert _parse_self_assessment("Did some work.\n\n[RESULT: SUCCESS]") is True
+
+
+def test_parse_self_assessment_failed():
+    assert _parse_self_assessment("Couldn't do it.\n\n[RESULT: FAILED]") is False
+
+
+def test_parse_self_assessment_missing():
+    assert _parse_self_assessment("No marker here.") is None
+
+
+def test_parse_self_assessment_uses_last_match():
+    output = "Discussed [RESULT: FAILED] earlier.\nBut actually:\n[RESULT: SUCCESS]"
+    assert _parse_self_assessment(output) is True
+
+
+def test_parse_self_assessment_case_insensitive():
+    assert _parse_self_assessment("[result: success]") is True
+    assert _parse_self_assessment("[Result: Failed]") is False
 
 
 def test_render_prompt_missing_variable():

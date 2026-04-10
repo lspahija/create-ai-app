@@ -10,7 +10,7 @@ prompt:
 
     Fix any issues you find.
 
-    $previous_result
+    $notes
 
 max_turns: 20
 timeout: 300
@@ -19,3 +19,5 @@ execution:
   mode: loop
   interval: 600
   carry_context: true
+  max_consecutive_failures: 3
+  self_assess: true

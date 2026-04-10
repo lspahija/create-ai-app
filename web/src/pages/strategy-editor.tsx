@@ -29,7 +29,7 @@ const DEFAULT_FORM: StrategyCreateRequest = {
   max_turns: null,
   timeout: 900,
   options: {},
-  execution: { mode: "one-shot", interval: 300, max_iterations: 0, carry_context: false },
+  execution: { mode: "one-shot", interval: 300, max_iterations: 0, carry_context: false, max_consecutive_failures: 3, self_assess: true },
 };
 
 export function StrategyEditorPage() {
@@ -228,12 +228,38 @@ export function StrategyEditorPage() {
                         onChange={(e) => updateExecution("max_iterations", Number(e.target.value))}
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="max-failures">Max Consecutive Failures (0 = disabled)</Label>
+                      <Input
+                        id="max-failures"
+                        type="number"
+                        min={0}
+                        value={form.execution?.max_consecutive_failures ?? 3}
+                        onChange={(e) => updateExecution("max_consecutive_failures", Number(e.target.value))}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Aborts the loop after this many failures in a row. Uses exponential backoff between retries.
+                      </p>
+                    </div>
                     <div className="flex items-center justify-between">
                       <Label htmlFor="carry-ctx">Carry Context</Label>
                       <Switch
                         id="carry-ctx"
                         checked={form.execution?.carry_context ?? false}
                         onCheckedChange={(v) => updateExecution("carry_context", v)}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="self-assess">Self-Assess</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Agent reports whether it made meaningful progress each iteration
+                        </p>
+                      </div>
+                      <Switch
+                        id="self-assess"
+                        checked={form.execution?.self_assess ?? true}
+                        onCheckedChange={(v) => updateExecution("self_assess", v)}
                       />
                     </div>
                   </>

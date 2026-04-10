@@ -10,6 +10,8 @@ export interface ExecutionPolicy {
   interval: number;
   max_iterations: number;
   carry_context: boolean;
+  max_consecutive_failures: number;
+  self_assess: boolean;
 }
 
 export interface Strategy {
@@ -55,6 +57,7 @@ export interface JobStatus {
   result_metadata: Record<string, unknown>;
   iteration_results: Array<{
     iteration: number;
+    success: boolean;
     output: string;
     metadata: Record<string, unknown>;
   }>;

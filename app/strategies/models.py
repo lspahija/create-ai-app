@@ -20,7 +20,9 @@ class ExecutionPolicy(BaseModel):
     mode: Literal["one-shot", "loop"] = "one-shot"
     interval: int = 300  # loop: seconds between runs
     max_iterations: int = 0  # loop: 0 = infinite
-    carry_context: bool = False  # loop: inject $previous_result
+    carry_context: bool = False  # loop: inject $notes
+    max_consecutive_failures: int = 3  # loop: 0 = disabled
+    self_assess: bool = True  # loop: agent self-reports success/failure
 
 
 class Strategy(BaseModel):
