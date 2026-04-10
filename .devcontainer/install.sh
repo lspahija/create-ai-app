@@ -101,6 +101,30 @@ get_workspace_folder() {
   echo "${1:-$(pwd)}"
 }
 
+is_port_available() {
+  ! lsof -iTCP:"$1" -sTCP:LISTEN -t &>/dev/null
+}
+
+find_available_port() {
+  local port="$1"
+  while ! is_port_available "$port"; do
+    port=$((port + 1))
+  done
+  echo "$port"
+}
+
+auto_assign_ports() {
+  if [[ -z "${DEVC_PORT_FRONTEND:-}" ]]; then
+    export DEVC_PORT_FRONTEND
+    DEVC_PORT_FRONTEND=$(find_available_port 5173)
+  fi
+  if [[ -z "${DEVC_PORT_BACKEND:-}" ]]; then
+    export DEVC_PORT_BACKEND
+    DEVC_PORT_BACKEND=$(find_available_port 8000)
+  fi
+  log_info "Ports: frontend=$DEVC_PORT_FRONTEND backend=$DEVC_PORT_BACKEND"
+}
+
 # Extract custom mounts from devcontainer.json to a temp file
 # Returns the temp file path, or empty string if no custom mounts
 #
@@ -230,6 +254,7 @@ cmd_up() {
 
   check_devcontainer_cli
   check_no_sys_admin "$workspace_folder"
+  auto_assign_ports
   log_info "Starting devcontainer in $workspace_folder..."
 
   devcontainer up --workspace-folder "$workspace_folder"
@@ -242,6 +267,7 @@ cmd_rebuild() {
 
   check_devcontainer_cli
   check_no_sys_admin "$workspace_folder"
+  auto_assign_ports
   log_info "Rebuilding devcontainer in $workspace_folder..."
 
   devcontainer up --workspace-folder "$workspace_folder" --remove-existing-container
@@ -330,6 +356,7 @@ cmd_mount() {
   log_info "Adding mount: $host_path → $container_path"
   update_devcontainer_mounts "$devcontainer_json" "$host_path" "$container_path" "$readonly"
 
+  auto_assign_ports
   log_info "Recreating container with new mount..."
   devcontainer up --workspace-folder "$workspace_folder" --remove-existing-container
 
